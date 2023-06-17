@@ -1,5 +1,32 @@
 package orm
 
+type condTyp string
+
+// condition 条件
+type condition struct {
+	typ      condTyp
+	rootExpr Expression // 根谓语（Predicate）
+}
+
+const (
+	condTypWhere  = " WHERE "
+	condTypHaving = " HAVING "
+)
+
+func newCond(typ condTyp, predicates []Predicate) condition {
+
+	root := predicates[0]
+	for i := 1; i < len(predicates); i++ {
+		root = root.And(predicates[i])
+	}
+
+	return condition{
+		typ:      typ,
+		rootExpr: root,
+	}
+
+}
+
 type op string
 
 const (
@@ -11,7 +38,7 @@ const (
 	opNot = "NOT"
 )
 
-// Predicate 条件
+// Predicate 谓语
 // 表达式的一种，由左右两个子表达式以及中间的操作符组成。
 // 其中部分操作符左子表达式可为空，例如 NOT。
 type Predicate struct {

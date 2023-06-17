@@ -7,8 +7,7 @@ import (
 	"testing"
 )
 
-func TestSelector_Build(t *testing.T) {
-
+func TestDeletor_Build(t *testing.T) {
 	tcs := []struct {
 		name     string
 		builder  StatBuilder
@@ -17,74 +16,74 @@ func TestSelector_Build(t *testing.T) {
 	}{
 		{
 			name:    "basic * select without from",
-			builder: NewSelector[selectorBuildArg](),
+			builder: NewDeletor[deletorBuildArg](),
 			wantStat: &Statement{
-				SQL: "SELECT * FROM `selector_build_arg`;",
+				SQL: "DELETE FROM `deletor_build_arg`;",
 			},
 		},
 		{
 			name:    "basic * select with from",
-			builder: NewSelector[selectorBuildArg]().From("test_model"),
+			builder: NewDeletor[deletorBuildArg]().From("test_model"),
 			wantStat: &Statement{
-				SQL: "SELECT * FROM `test_model`;",
+				SQL: "DELETE FROM `test_model`;",
 			},
 		}, {
 			name:    "basic * select with empty from",
-			builder: NewSelector[selectorBuildArg]().From(""),
+			builder: NewDeletor[deletorBuildArg]().From(""),
 			wantStat: &Statement{
-				SQL: "SELECT * FROM `selector_build_arg`;",
+				SQL: "DELETE FROM `deletor_build_arg`;",
 			},
 		}, {
 			name:    "basic * select with from db name",
-			builder: NewSelector[selectorBuildArg]().From("test_db.test_model"),
+			builder: NewDeletor[deletorBuildArg]().From("test_db.test_model"),
 			wantStat: &Statement{
-				SQL: "SELECT * FROM `test_db`.`test_model`;",
+				SQL: "DELETE FROM `test_db`.`test_model`;",
 			},
 		}, {
 			name:    "empty where",
-			builder: NewSelector[selectorBuildArg]().Where(),
+			builder: NewDeletor[deletorBuildArg]().Where(),
 			wantStat: &Statement{
-				SQL: "SELECT * FROM `selector_build_arg`;",
+				SQL: "DELETE FROM `deletor_build_arg`;",
 			},
 		}, {
 			name:    "single predicate where",
-			builder: NewSelector[selectorBuildArg]().Where(Col("Age").Eq(18)),
+			builder: NewDeletor[deletorBuildArg]().Where(Col("Age").Eq(18)),
 			wantStat: &Statement{
-				SQL:  "SELECT * FROM `selector_build_arg` WHERE `age` = ?;",
+				SQL:  "DELETE FROM `deletor_build_arg` WHERE `age` = ?;",
 				Args: []any{18},
 			},
 		}, {
 			name:    "not predicate where",
-			builder: NewSelector[selectorBuildArg]().Where(Not(Col("Age").Eq(18))),
+			builder: NewDeletor[deletorBuildArg]().Where(Not(Col("Age").Eq(18))),
 			wantStat: &Statement{
-				SQL:  "SELECT * FROM `selector_build_arg` WHERE NOT (`age` = ?);",
+				SQL:  "DELETE FROM `deletor_build_arg` WHERE NOT (`age` = ?);",
 				Args: []any{18},
 			},
 		}, {
 			name: "not & and predicate where",
-			builder: NewSelector[selectorBuildArg]().Where(
+			builder: NewDeletor[deletorBuildArg]().Where(
 				Not(
 					Col("Age").Eq(18).And(Col("Id").Eq(1)),
 				),
 			),
 			wantStat: &Statement{
-				SQL:  "SELECT * FROM `selector_build_arg` WHERE NOT ((`age` = ?) AND (`id` = ?));",
+				SQL:  "DELETE FROM `deletor_build_arg` WHERE NOT ((`age` = ?) AND (`id` = ?));",
 				Args: []any{18, 1},
 			},
 		}, {
 			name: "not & or predicate where",
-			builder: NewSelector[selectorBuildArg]().Where(
+			builder: NewDeletor[deletorBuildArg]().Where(
 				Not(
 					Col("Id").Gt(100).Or(Col("Age").Lt(18)),
 				),
 			),
 			wantStat: &Statement{
-				SQL:  "SELECT * FROM `selector_build_arg` WHERE NOT ((`id` > ?) OR (`age` < ?));",
+				SQL:  "DELETE FROM `deletor_build_arg` WHERE NOT ((`id` > ?) OR (`age` < ?));",
 				Args: []any{100, 18},
 			},
 		}, {
 			name:    "invalid type",
-			builder: NewSelector[selectorBuildArg]().Where(Col("Invalid").Eq("test")),
+			builder: NewDeletor[deletorBuildArg]().Where(Col("Invalid").Eq("test")),
 			wantErr: errs.InvalidColumnErr("Invalid"),
 		},
 	}
@@ -101,7 +100,7 @@ func TestSelector_Build(t *testing.T) {
 
 }
 
-type selectorBuildArg struct {
+type deletorBuildArg struct {
 	Id        int64
 	Age       int8
 	FirstName string
