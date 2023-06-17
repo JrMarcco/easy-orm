@@ -1,7 +1,8 @@
 package orm
 
 import (
-	"entgo.io/ent/dialect/sql"
+	"database/sql"
+	"github.com/jrmarcco/easy-orm/internal/errs"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -16,79 +17,74 @@ func TestSelector_Build(t *testing.T) {
 	}{
 		{
 			name:    "basic * select without from",
-			builder: &Selector[TestModel]{},
+			builder: &Selector[selectorBuildArg]{},
 			wantStat: &Statement{
-				SQL: "SELECT * FROM `TestModel`;",
+				SQL: "SELECT * FROM `selector_build_arg`;",
 			},
-			wantErr: nil,
 		}, {
 			name:    "basic * select with from",
-			builder: (&Selector[TestModel]{}).From("test_model"),
+			builder: (&Selector[selectorBuildArg]{}).From("test_model"),
 			wantStat: &Statement{
 				SQL: "SELECT * FROM `test_model`;",
 			},
-			wantErr: nil,
 		}, {
 			name:    "basic * select with empty from",
-			builder: (&Selector[TestModel]{}).From(""),
+			builder: (&Selector[selectorBuildArg]{}).From(""),
 			wantStat: &Statement{
-				SQL: "SELECT * FROM `TestModel`;",
+				SQL: "SELECT * FROM `selector_build_arg`;",
 			},
-			wantErr: nil,
 		}, {
 			name:    "basic * select with from db name",
-			builder: (&Selector[TestModel]{}).From("test_db.test_model"),
+			builder: (&Selector[selectorBuildArg]{}).From("test_db.test_model"),
 			wantStat: &Statement{
 				SQL: "SELECT * FROM `test_db`.`test_model`;",
 			},
-			wantErr: nil,
 		}, {
 			name:    "empty where",
-			builder: (&Selector[TestModel]{}).Where(),
+			builder: (&Selector[selectorBuildArg]{}).Where(),
 			wantStat: &Statement{
-				SQL: "SELECT * FROM `TestModel`;",
+				SQL: "SELECT * FROM `selector_build_arg`;",
 			},
-			wantErr: nil,
 		}, {
 			name:    "single predicate where",
-			builder: (&Selector[TestModel]{}).Where(Col("Age").Eq(18)),
+			builder: (&Selector[selectorBuildArg]{}).Where(Col("Age").Eq(18)),
 			wantStat: &Statement{
-				SQL:  "SELECT * FROM `TestModel` WHERE `Age` = ?;",
+				SQL:  "SELECT * FROM `selector_build_arg` WHERE `age` = ?;",
 				Args: []any{18},
 			},
-			wantErr: nil,
 		}, {
 			name:    "not predicate where",
-			builder: (&Selector[TestModel]{}).Where(Not(Col("Age").Eq(18))),
+			builder: (&Selector[selectorBuildArg]{}).Where(Not(Col("Age").Eq(18))),
 			wantStat: &Statement{
-				SQL:  "SELECT * FROM `TestModel` WHERE NOT (`Age` = ?);",
+				SQL:  "SELECT * FROM `selector_build_arg` WHERE NOT (`age` = ?);",
 				Args: []any{18},
 			},
-			wantErr: nil,
 		}, {
 			name: "not & and predicate where",
-			builder: (&Selector[TestModel]{}).Where(
+			builder: (&Selector[selectorBuildArg]{}).Where(
 				Not(
 					Col("Age").Eq(18).And(Col("Id").Eq(1)),
 				),
 			),
 			wantStat: &Statement{
-				SQL:  "SELECT * FROM `TestModel` WHERE NOT ((`Age` = ?) AND (`Id` = ?));",
+				SQL:  "SELECT * FROM `selector_build_arg` WHERE NOT ((`age` = ?) AND (`id` = ?));",
 				Args: []any{18, 1},
 			},
-			wantErr: nil,
 		}, {
 			name: "not & or predicate where",
-			builder: (&Selector[TestModel]{}).Where(
+			builder: (&Selector[selectorBuildArg]{}).Where(
 				Not(
 					Col("Id").Gt(100).Or(Col("Age").Lt(18)),
 				),
 			),
 			wantStat: &Statement{
-				SQL:  "SELECT * FROM `TestModel` WHERE NOT ((`Id` > ?) OR (`Age` < ?));",
+				SQL:  "SELECT * FROM `selector_build_arg` WHERE NOT ((`id` > ?) OR (`age` < ?));",
 				Args: []any{100, 18},
 			},
-			wantErr: nil,
+		}, {
+			name:    "invalid type",
+			builder: (&Selector[selectorBuildArg]{}).Where(Col("Invalid").Eq("test")),
+			wantErr: errs.InvalidColumnErr("Invalid"),
 		},
 	}
 
@@ -96,7 +92,6 @@ func TestSelector_Build(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			stat, err := tc.builder.Build()
 			assert.Equal(t, tc.wantErr, err)
-
 			if err == nil {
 				assert.Equal(t, tc.wantStat, stat)
 			}
@@ -105,7 +100,7 @@ func TestSelector_Build(t *testing.T) {
 
 }
 
-type TestModel struct {
+type selectorBuildArg struct {
 	Id        int64
 	Age       int8
 	FirstName string

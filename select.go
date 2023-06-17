@@ -2,12 +2,12 @@ package orm
 
 import (
 	"context"
-	"errors"
-	"reflect"
+	"github.com/jrmarcco/easy-orm/internal/errs"
 	"strings"
 )
 
 type Selector[T any] struct {
+	model     *model
 	tableName string
 	where     []Predicate
 	sb        *strings.Builder
@@ -26,15 +26,18 @@ func (s *Selector[T]) Where(predicates ...Predicate) *Selector[T] {
 
 func (s *Selector[T]) Build() (*Statement, error) {
 
+	var err error
+	s.model, err = parseModel(new(T))
+	if err != nil {
+		return nil, err
+	}
+
 	s.sb = &strings.Builder{}
 	s.sb.WriteString("SELECT * FROM ")
 
 	if s.tableName == "" {
-		var t T
-		typ := reflect.TypeOf(t)
-
 		s.sb.WriteByte('`')
-		s.sb.WriteString(typ.Name())
+		s.sb.WriteString(s.model.tbName)
 		s.sb.WriteByte('`')
 	} else {
 
@@ -84,8 +87,14 @@ func (s *Selector[T]) buildExpr(expr Expression) error {
 
 	switch exprTyp := expr.(type) {
 	case Column:
+
+		fd, ok := s.model.fds[exprTyp.name]
+		if !ok {
+			return errs.InvalidColumnErr(exprTyp.name)
+		}
+
 		s.sb.WriteByte('`')
-		s.sb.WriteString(exprTyp.name)
+		s.sb.WriteString(fd.colName)
 		s.sb.WriteByte('`')
 	case Value:
 		s.sb.WriteByte('?')
@@ -98,7 +107,7 @@ func (s *Selector[T]) buildExpr(expr Expression) error {
 
 		// 递归左子表达式
 		if err := s.buildExpr(exprTyp.left); err != nil {
-			return nil
+			return err
 		}
 
 		if _, lok := exprTyp.left.(Predicate); lok {
@@ -118,14 +127,14 @@ func (s *Selector[T]) buildExpr(expr Expression) error {
 
 		// 递归右子表达式
 		if err := s.buildExpr(exprTyp.right); err != nil {
-			return nil
+			return err
 		}
 
 		if _, rok := exprTyp.right.(Predicate); rok {
 			s.sb.WriteByte(')')
 		}
 	default:
-		return errors.New("unsupported expression type")
+		return errs.UnsupportedExprErr
 	}
 
 	return nil
