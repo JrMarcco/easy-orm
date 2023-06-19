@@ -5,9 +5,11 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 )
 
 type registry struct {
+	sync.RWMutex
 	models map[reflect.Type]*model
 }
 
@@ -18,16 +20,32 @@ func newRegistry() *registry {
 }
 
 func (r *registry) getModel(entity any) (*model, error) {
-	m, ok := r.models[reflect.TypeOf(entity)]
-	if !ok {
-		var err error
-		m, err = r.parseModel(entity)
-		if err != nil {
-			return nil, err
-		}
 
-		r.models[reflect.TypeOf(entity)] = m
+	typ := reflect.TypeOf(entity)
+
+	r.RLock()
+	m, ok := r.models[typ]
+	r.RUnlock()
+
+	if ok {
+		return m, nil
 	}
+
+	r.Lock()
+	defer r.Unlock()
+
+	// double check
+	if m, ok = r.models[typ]; ok {
+		return m, nil
+	}
+
+	var err error
+	m, err = r.parseModel(entity)
+	if err != nil {
+		return nil, err
+	}
+
+	r.models[typ] = m
 
 	return m, nil
 }
