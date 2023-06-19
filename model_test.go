@@ -155,6 +155,39 @@ func TestRegistry_parseModel(t *testing.T) {
 				return Demo{}
 			}(),
 			wantErr: errs.EmptyTagValErr("column=  "),
+		}, {
+			name: "custom name",
+			arg:  &customTbName{},
+			wantRes: &model{
+				tbName: "custom_name",
+				fds: map[string]field{
+					"Name": {
+						colName: "name",
+					},
+				},
+			},
+		}, {
+			name: "custom name ptr",
+			arg:  &customTbNamePtr{},
+			wantRes: &model{
+				tbName: "custom_name",
+				fds: map[string]field{
+					"Name": {
+						colName: "name",
+					},
+				},
+			},
+		}, {
+			name: "empty custom name",
+			arg:  emptyCustomTbName{},
+			wantRes: &model{
+				tbName: "empty_custom_tb_name",
+				fds: map[string]field{
+					"Name": {
+						colName: "name",
+					},
+				},
+			},
 		},
 	}
 
@@ -170,6 +203,36 @@ func TestRegistry_parseModel(t *testing.T) {
 			}
 		})
 	}
+}
+
+type parseModelArg struct {
+	ID       int64
+	Name     string
+	NickName string
+}
+
+type customTbName struct {
+	Name string
+}
+
+func (c customTbName) TbName() string {
+	return "custom_name"
+}
+
+type customTbNamePtr struct {
+	Name string
+}
+
+func (c *customTbNamePtr) TbName() string {
+	return "custom_name"
+}
+
+type emptyCustomTbName struct {
+	Name string
+}
+
+func (e emptyCustomTbName) TbName() string {
+	return ""
 }
 
 func TestRegistry_getModel(t *testing.T) {
@@ -244,10 +307,4 @@ func TestRegistry_getModel(t *testing.T) {
 			}
 		})
 	}
-}
-
-type parseModelArg struct {
-	ID       int64
-	Name     string
-	NickName string
 }

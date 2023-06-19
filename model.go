@@ -96,8 +96,17 @@ func (r *registry) parseModel(entity any) (*model, error) {
 		}
 	}
 
+	var tbName string
+	if ti, ok := entity.(TbName); ok {
+		tbName = ti.TbName()
+	}
+
+	if tbName == "" {
+		tbName = camelToUnderline(typ.Name())
+	}
+
 	m := &model{
-		tbName: camelToUnderline(typ.Name()),
+		tbName: tbName,
 		fds:    fds,
 	}
 

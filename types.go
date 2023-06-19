@@ -26,3 +26,7 @@ type Statement struct {
 type StatBuilder interface {
 	Build() (*Statement, error)
 }
+
+type TbName interface {
+	TbName() string
+}
