@@ -1,7 +1,7 @@
 package orm
 
 type Db struct {
-	registry *registry
+	registry Registry
 }
 
 type DbOpt func(db *Db)

@@ -67,7 +67,7 @@ func TestRegistry_parseModel(t *testing.T) {
 			arg:  parseModelArg{},
 			wantRes: &model{
 				tbName: "parse_model_arg",
-				fds: map[string]field{
+				fds: map[string]*field{
 					"ID": {
 						colName: "id",
 					},
@@ -84,7 +84,7 @@ func TestRegistry_parseModel(t *testing.T) {
 			arg:  &parseModelArg{},
 			wantRes: &model{
 				tbName: "parse_model_arg",
-				fds: map[string]field{
+				fds: map[string]*field{
 					"ID": {
 						colName: "id",
 					},
@@ -106,7 +106,7 @@ func TestRegistry_parseModel(t *testing.T) {
 			}(),
 			wantRes: &model{
 				tbName: "demo",
-				fds: map[string]field{
+				fds: map[string]*field{
 					"ID": {
 						colName: "id_suffix",
 					},
@@ -122,7 +122,7 @@ func TestRegistry_parseModel(t *testing.T) {
 			}(),
 			wantRes: &model{
 				tbName: "demo",
-				fds: map[string]field{
+				fds: map[string]*field{
 					"ID": {
 						colName: "id_suffix",
 					},
@@ -160,7 +160,7 @@ func TestRegistry_parseModel(t *testing.T) {
 			arg:  &customTbName{},
 			wantRes: &model{
 				tbName: "custom_name",
-				fds: map[string]field{
+				fds: map[string]*field{
 					"Name": {
 						colName: "name",
 					},
@@ -171,7 +171,7 @@ func TestRegistry_parseModel(t *testing.T) {
 			arg:  &customTbNamePtr{},
 			wantRes: &model{
 				tbName: "custom_name",
-				fds: map[string]field{
+				fds: map[string]*field{
 					"Name": {
 						colName: "name",
 					},
@@ -182,7 +182,7 @@ func TestRegistry_parseModel(t *testing.T) {
 			arg:  emptyCustomTbName{},
 			wantRes: &model{
 				tbName: "empty_custom_tb_name",
-				fds: map[string]field{
+				fds: map[string]*field{
 					"Name": {
 						colName: "name",
 					},
@@ -191,10 +191,12 @@ func TestRegistry_parseModel(t *testing.T) {
 		},
 	}
 
-	r := newRegistry()
+	r := &registry{
+		models: make(map[reflect.Type]*model, 64),
+	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			res, err := r.parseModel(tc.arg)
+			res, err := r.Get(tc.arg)
 
 			assert.Equal(t, tc.wantErr, err)
 
@@ -258,7 +260,7 @@ func TestRegistry_getModel(t *testing.T) {
 			arg:  parseModelArg{},
 			wantRes: &model{
 				tbName: "parse_model_arg",
-				fds: map[string]field{
+				fds: map[string]*field{
 					"ID": {
 						colName: "id",
 					},
@@ -275,7 +277,7 @@ func TestRegistry_getModel(t *testing.T) {
 			arg:  &parseModelArg{},
 			wantRes: &model{
 				tbName: "parse_model_arg",
-				fds: map[string]field{
+				fds: map[string]*field{
 					"ID": {
 						colName: "id",
 					},
@@ -290,10 +292,12 @@ func TestRegistry_getModel(t *testing.T) {
 		},
 	}
 
-	r := newRegistry()
+	r := &registry{
+		models: make(map[reflect.Type]*model, 8),
+	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			res, err := r.getModel(tc.arg)
+			res, err := r.parseModel(tc.arg)
 
 			assert.Equal(t, tc.wantErr, err)
 
@@ -304,6 +308,130 @@ func TestRegistry_getModel(t *testing.T) {
 				assert.True(t, ok)
 
 				assert.Equal(t, tc.wantRes, m)
+			}
+		})
+	}
+}
+
+func TestRegistry_Register(t *testing.T) {
+	tcs := []struct {
+		name    string
+		entity  any
+		opts    []ModelOpt
+		wantErr error
+		wantRes *model
+	}{
+		{
+			name:   "basis",
+			entity: parseModelArg{},
+			wantRes: &model{
+				tbName: "parse_model_arg",
+				fds: map[string]*field{
+					"ID": {
+						colName: "id",
+					},
+					"Name": {
+						colName: "name",
+					},
+					"NickName": {
+						colName: "nick_name",
+					},
+				},
+			},
+		}, {
+			name:   "with table name opt",
+			entity: parseModelArg{},
+			opts: []ModelOpt{
+				ModelWithTbName("tb_name"),
+			},
+			wantRes: &model{
+				tbName: "tb_name",
+				fds: map[string]*field{
+					"ID": {
+						colName: "id",
+					},
+					"Name": {
+						colName: "name",
+					},
+					"NickName": {
+						colName: "nick_name",
+					},
+				},
+			},
+		}, {
+			name:   "with empty table name opt",
+			entity: parseModelArg{},
+			opts: []ModelOpt{
+				ModelWithTbName(""),
+			},
+			wantErr: errs.EmptyTbNameErr,
+		}, {
+			name:   "with single column name opt",
+			entity: parseModelArg{},
+			opts: []ModelOpt{
+				ModelWithColumName("ID", "id_suffix"),
+			},
+			wantRes: &model{
+				tbName: "parse_model_arg",
+				fds: map[string]*field{
+					"ID": {
+						colName: "id_suffix",
+					},
+					"Name": {
+						colName: "name",
+					},
+					"NickName": {
+						colName: "nick_name",
+					},
+				},
+			},
+		}, {
+			name:   "with multi column name opt",
+			entity: parseModelArg{},
+			opts: []ModelOpt{
+				ModelWithColumName("ID", "id_suffix"),
+				ModelWithColumName("NickName", "nick_name_suffix"),
+			},
+			wantRes: &model{
+				tbName: "parse_model_arg",
+				fds: map[string]*field{
+					"ID": {
+						colName: "id_suffix",
+					},
+					"Name": {
+						colName: "name",
+					},
+					"NickName": {
+						colName: "nick_name_suffix",
+					},
+				},
+			},
+		}, {
+			name:   "with invalid column field opt",
+			entity: parseModelArg{},
+			opts: []ModelOpt{
+				ModelWithColumName("Invalid", "column_name"),
+			},
+			wantErr: errs.InvalidColumnFdErr("Invalid"),
+		}, {
+			name:   "with empty column name opt",
+			entity: parseModelArg{},
+			opts: []ModelOpt{
+				ModelWithColumName("Name", ""),
+			},
+			wantErr: errs.EmptyColNameErr,
+		},
+	}
+
+	r := newRegistry()
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := r.Register(tc.entity, tc.opts...)
+			assert.Equal(t, tc.wantErr, err)
+
+			if err == nil {
+				assert.Equal(t, tc.wantRes, res)
 			}
 		})
 	}

@@ -89,7 +89,7 @@ func TestSelector_Build(t *testing.T) {
 		}, {
 			name:    "invalid type",
 			builder: NewSelector[selectorBuildArg](db).Where(Col("Invalid").Eq("test")),
-			wantErr: errs.InvalidColumnErr("Invalid"),
+			wantErr: errs.InvalidColumnFdErr("Invalid"),
 		},
 	}
 

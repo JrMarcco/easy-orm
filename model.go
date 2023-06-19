@@ -8,19 +8,82 @@ import (
 	"sync"
 )
 
+type model struct {
+	tbName string
+	fds    map[string]*field
+}
+
+type ModelOpt func(m *model) error
+
+func ModelWithTbName(tbName string) ModelOpt {
+	return func(m *model) error {
+		if tbName == "" {
+			return errs.EmptyTbNameErr
+		}
+
+		m.tbName = tbName
+		return nil
+	}
+}
+
+func ModelWithColumName(fdName string, colName string) ModelOpt {
+	return func(m *model) error {
+
+		if colName == "" {
+			return errs.EmptyColNameErr
+
+		}
+
+		fd, ok := m.fds[fdName]
+		if !ok {
+			return errs.InvalidColumnFdErr(fdName)
+		}
+
+		fd.colName = colName
+		return nil
+	}
+}
+
+type field struct {
+	colName string
+}
+
 const (
 	tagKeyCol = "column"
 )
+
+type Registry interface {
+	Get(entity any) (*model, error)
+	Register(entity any, opts ...ModelOpt) (*model, error)
+}
+
+var _ Registry = &registry{}
 
 type registry struct {
 	sync.RWMutex
 	models map[reflect.Type]*model
 }
 
-func newRegistry() *registry {
+func newRegistry() Registry {
 	return &registry{
 		models: make(map[reflect.Type]*model, 64),
 	}
+}
+
+func (r *registry) Get(entity any) (*model, error) {
+	return r.getModel(entity)
+}
+
+func (r *registry) Register(entity any, opts ...ModelOpt) (*model, error) {
+	m, err := r.parseModel(entity)
+
+	for _, opt := range opts {
+		if err = opt(m); err != nil {
+			return nil, err
+		}
+	}
+
+	return m, err
 }
 
 func (r *registry) getModel(entity any) (*model, error) {
@@ -49,8 +112,6 @@ func (r *registry) getModel(entity any) (*model, error) {
 		return nil, err
 	}
 
-	r.models[typ] = m
-
 	return m, nil
 }
 
@@ -61,25 +122,26 @@ func (r *registry) parseModel(entity any) (*model, error) {
 
 	typ := reflect.TypeOf(entity)
 
-	if typ.Kind() != reflect.Struct {
+	elemTyp := typ
+	if elemTyp.Kind() != reflect.Struct {
 
-		if typ.Kind() != reflect.Pointer {
+		if elemTyp.Kind() != reflect.Pointer {
 			return nil, errs.InvalidTypeErr
 		}
 
-		typ = typ.Elem()
+		elemTyp = elemTyp.Elem()
 
-		if typ.Kind() != reflect.Struct {
+		if elemTyp.Kind() != reflect.Struct {
 			return nil, errs.InvalidTypeErr
 		}
 
 	}
 
-	numField := typ.NumField()
-	fds := make(map[string]field, numField)
+	numField := elemTyp.NumField()
+	fds := make(map[string]*field, numField)
 
 	for i := 0; i < numField; i++ {
-		fd := typ.Field(i)
+		fd := elemTyp.Field(i)
 
 		tags, err := r.parseTag(fd.Tag)
 		if err != nil {
@@ -91,7 +153,7 @@ func (r *registry) parseModel(entity any) (*model, error) {
 			colName = camelToUnderline(fd.Name)
 		}
 
-		fds[fd.Name] = field{
+		fds[fd.Name] = &field{
 			colName: colName,
 		}
 	}
@@ -102,13 +164,15 @@ func (r *registry) parseModel(entity any) (*model, error) {
 	}
 
 	if tbName == "" {
-		tbName = camelToUnderline(typ.Name())
+		tbName = camelToUnderline(elemTyp.Name())
 	}
 
 	m := &model{
 		tbName: tbName,
 		fds:    fds,
 	}
+
+	r.models[typ] = m
 
 	return m, nil
 }
@@ -143,15 +207,6 @@ func (r *registry) parseTag(tag reflect.StructTag) (map[string]string, error) {
 	}
 
 	return tagMap, nil
-}
-
-type model struct {
-	tbName string
-	fds    map[string]field
-}
-
-type field struct {
-	colName string
 }
 
 var (

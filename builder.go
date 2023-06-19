@@ -30,7 +30,7 @@ func (b *builder) buildExpr(expr Expression) error {
 
 		fd, ok := b.model.fds[exprTyp.name]
 		if !ok {
-			return errs.InvalidColumnErr(exprTyp.name)
+			return errs.InvalidColumnFdErr(exprTyp.name)
 		}
 
 		b.sb.WriteByte('`')

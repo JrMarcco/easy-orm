@@ -8,10 +8,12 @@ import (
 var (
 	InvalidTypeErr     = errors.New("invalid type, only support struct and first-level pointer")
 	UnsupportedExprErr = errors.New("unsupported expression type")
+	EmptyTbNameErr     = errors.New("empty table name")
+	EmptyColNameErr    = errors.New("empty column name")
 )
 
-func InvalidColumnErr(col string) error {
-	return fmt.Errorf("invlaid column '%s'", col)
+func InvalidColumnFdErr(fd string) error {
+	return fmt.Errorf("invlaid column field '%s'", fd)
 }
 
 func InvalidTagContentErr(content string) error {

@@ -34,7 +34,7 @@ func (d *Deletor[T]) Where(predicates ...Predicate) *Deletor[T] {
 func (d *Deletor[T]) Build() (*Statement, error) {
 
 	var err error
-	if d.model, err = d.db.registry.getModel(new(T)); err != nil {
+	if d.model, err = d.db.registry.Get(new(T)); err != nil {
 		return nil, err
 	}
 

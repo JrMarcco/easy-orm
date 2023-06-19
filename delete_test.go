@@ -89,7 +89,7 @@ func TestDeletor_Build(t *testing.T) {
 		}, {
 			name:    "invalid type",
 			builder: NewDeletor[deletorBuildArg](db).Where(Col("Invalid").Eq("test")),
-			wantErr: errs.InvalidColumnErr("Invalid"),
+			wantErr: errs.InvalidColumnFdErr("Invalid"),
 		},
 	}
 

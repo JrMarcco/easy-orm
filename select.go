@@ -37,7 +37,7 @@ func (s *Selector[T]) Where(predicates ...Predicate) *Selector[T] {
 func (s *Selector[T]) Build() (*Statement, error) {
 
 	var err error
-	if s.model, err = s.db.registry.getModel(new(T)); err != nil {
+	if s.model, err = s.db.registry.Get(new(T)); err != nil {
 		return nil, err
 	}
 
