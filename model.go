@@ -8,6 +8,10 @@ import (
 	"sync"
 )
 
+const (
+	tagKeyCol = "column"
+)
+
 type registry struct {
 	sync.RWMutex
 	models map[reflect.Type]*model
@@ -76,8 +80,19 @@ func (r *registry) parseModel(entity any) (*model, error) {
 
 	for i := 0; i < numField; i++ {
 		fd := typ.Field(i)
+
+		tags, err := r.parseTag(fd.Tag)
+		if err != nil {
+			return nil, err
+		}
+
+		colName, ok := tags[tagKeyCol]
+		if !ok {
+			colName = camelToUnderline(fd.Name)
+		}
+
 		fds[fd.Name] = field{
-			colName: camelToUnderline(fd.Name),
+			colName: colName,
 		}
 	}
 
@@ -86,9 +101,39 @@ func (r *registry) parseModel(entity any) (*model, error) {
 		fds:    fds,
 	}
 
-	r.models[typ] = m
-
 	return m, nil
+}
+
+// parseTag 解析标签
+func (r *registry) parseTag(tag reflect.StructTag) (map[string]string, error) {
+	ormTag := tag.Get("orm")
+	if ormTag == "" {
+		return map[string]string{}, nil
+	}
+
+	pairs := strings.Split(ormTag, ",")
+	tagMap := make(map[string]string, len(pairs))
+
+	for _, pair := range pairs {
+		content := strings.Split(pair, "=")
+		if len(content) != 2 {
+			return nil, errs.InvalidTagContentErr(pair)
+		}
+
+		key := strings.Trim(content[0], " ")
+		if key == "" {
+			return nil, errs.EmptyTagKeyErr(pair)
+		}
+
+		val := strings.Trim(content[1], " ")
+		if val == "" {
+			return nil, errs.EmptyTagValErr(pair)
+		}
+
+		tagMap[key] = val
+	}
+
+	return tagMap, nil
 }
 
 type model struct {
