@@ -43,7 +43,7 @@ func TestCamelToUnderline(t *testing.T) {
 	}
 }
 
-func TestParseModel(t *testing.T) {
+func TestRegistry_parseModel(t *testing.T) {
 	tcs := []struct {
 		name    string
 		arg     any
@@ -98,9 +98,10 @@ func TestParseModel(t *testing.T) {
 		},
 	}
 
+	r := newRegistry()
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			res, err := parseModel(tc.arg)
+			res, err := r.parseModel(tc.arg)
 
 			assert.Equal(t, tc.wantErr, err)
 
@@ -110,6 +111,20 @@ func TestParseModel(t *testing.T) {
 		})
 	}
 
+}
+
+func TestRegistry_getModel(t *testing.T) {
+	tcs := []struct {
+		name string
+	}{
+		{},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+
+		})
+	}
 }
 
 type parseModelArg struct {

@@ -8,11 +8,13 @@ import (
 type Selector[T any] struct {
 	*builder
 	conds []condition
+	db    *Db
 }
 
-func NewSelector[T any]() *Selector[T] {
+func NewSelector[T any](db *Db) *Selector[T] {
 	return &Selector[T]{
-		builder: &builder{},
+		builder: newBuilder(),
+		db:      db,
 	}
 }
 
@@ -35,11 +37,10 @@ func (s *Selector[T]) Where(predicates ...Predicate) *Selector[T] {
 func (s *Selector[T]) Build() (*Statement, error) {
 
 	var err error
-	if s.model, err = parseModel(new(T)); err != nil {
+	if s.model, err = s.db.registry.getModel(new(T)); err != nil {
 		return nil, err
 	}
 
-	s.sb = &strings.Builder{}
 	s.sb.WriteString("SELECT * FROM ")
 
 	if s.tbName == "" {

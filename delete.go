@@ -5,11 +5,13 @@ import "strings"
 type Deletor[T any] struct {
 	*builder
 	conds []condition
+	db    *Db
 }
 
-func NewDeletor[T any]() *Deletor[T] {
+func NewDeletor[T any](db *Db) *Deletor[T] {
 	return &Deletor[T]{
-		builder: &builder{},
+		builder: newBuilder(),
+		db:      db,
 	}
 }
 
@@ -32,7 +34,7 @@ func (d *Deletor[T]) Where(predicates ...Predicate) *Deletor[T] {
 func (d *Deletor[T]) Build() (*Statement, error) {
 
 	var err error
-	if d.model, err = parseModel(new(T)); err != nil {
+	if d.model, err = d.db.registry.getModel(new(T)); err != nil {
 		return nil, err
 	}
 

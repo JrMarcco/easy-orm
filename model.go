@@ -7,19 +7,35 @@ import (
 	"strings"
 )
 
-type model struct {
-	tbName string
-	fds    map[string]field
+type registry struct {
+	models map[reflect.Type]*model
 }
 
-type field struct {
-	colName string
+func newRegistry() *registry {
+	return &registry{
+		models: make(map[reflect.Type]*model, 64),
+	}
+}
+
+func (r *registry) getModel(entity any) (*model, error) {
+	m, ok := r.models[reflect.TypeOf(entity)]
+	if !ok {
+		var err error
+		m, err = r.parseModel(entity)
+		if err != nil {
+			return nil, err
+		}
+
+		r.models[reflect.TypeOf(entity)] = m
+	}
+
+	return m, nil
 }
 
 // parseModel 解析 model。
 //
 // entity 只能是结构体或指向结构体的一级指针。
-func parseModel(entity any) (*model, error) {
+func (r *registry) parseModel(entity any) (*model, error) {
 
 	typ := reflect.TypeOf(entity)
 
@@ -47,10 +63,23 @@ func parseModel(entity any) (*model, error) {
 		}
 	}
 
-	return &model{
+	m := &model{
 		tbName: camelToUnderline(typ.Name()),
 		fds:    fds,
-	}, nil
+	}
+
+	r.models[typ] = m
+
+	return m, nil
+}
+
+type model struct {
+	tbName string
+	fds    map[string]field
+}
+
+type field struct {
+	colName string
 }
 
 var (

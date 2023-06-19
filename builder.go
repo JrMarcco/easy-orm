@@ -12,6 +12,12 @@ type builder struct {
 	args   []any
 }
 
+func newBuilder() *builder {
+	return &builder{
+		sb: &strings.Builder{},
+	}
+}
+
 // 构建表达式。
 // 该过程本是上是一个深度优先遍历二叉树的过程。
 func (b *builder) buildExpr(expr Expression) error {
