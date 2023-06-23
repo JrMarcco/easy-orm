@@ -130,7 +130,7 @@ func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
 	}
 
 	res := new(T)
-	typ := reflect.ValueOf(res)
+	valElem := reflect.ValueOf(res).Elem()
 
 	for i, col := range cols {
 		fd, ok := s.model.cols[col]
@@ -138,7 +138,7 @@ func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
 			return nil, errs.InvalidColumnErr(col)
 		}
 
-		typ.Elem().FieldByName(fd.fdName).Set(valElems[i])
+		valElem.FieldByName(fd.fdName).Set(valElems[i])
 	}
 
 	return res, nil
