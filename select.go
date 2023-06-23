@@ -10,8 +10,9 @@ import (
 
 type Selector[T any] struct {
 	*builder
-	conds []condition
-	db    *DB
+	selectFds []string
+	conds     []condition
+	db        *DB
 }
 
 func NewSelector[T any](db *DB) *Selector[T] {
@@ -19,6 +20,11 @@ func NewSelector[T any](db *DB) *Selector[T] {
 		builder: newBuilder(),
 		db:      db,
 	}
+}
+
+func (s *Selector[T]) Select(selectFds ...string) *Selector[T] {
+	s.selectFds = selectFds
+	return s
 }
 
 func (s *Selector[T]) From(tbName string) *Selector[T] {
@@ -44,7 +50,30 @@ func (s *Selector[T]) Build() (*Statement, error) {
 		return nil, err
 	}
 
-	s.sb.WriteString("SELECT * FROM ")
+	s.sb.WriteString("SELECT ")
+
+	if len(s.selectFds) > 0 {
+		fdLen := len(s.selectFds)
+		for i, selectFd := range s.selectFds {
+			fd, ok := s.model.fds[selectFd]
+			if !ok {
+				return nil, errs.InvalidColumnFdErr(selectFd)
+			}
+
+			s.sb.WriteByte('`')
+			s.sb.WriteString(fd.colName)
+			s.sb.WriteByte('`')
+
+			if i != fdLen-1 {
+				s.sb.WriteByte(',')
+			}
+		}
+
+	} else {
+		s.sb.WriteByte('*')
+	}
+
+	s.sb.WriteString(" FROM ")
 
 	if s.tbName == "" {
 		s.sb.WriteByte('`')
