@@ -10,7 +10,8 @@ import (
 
 type model struct {
 	tbName string
-	fds    map[string]*field
+	fds    map[string]*field // fieldName -> field
+	cols   map[string]*field // colName -> field
 }
 
 type ModelOpt func(m *model) error
@@ -39,12 +40,17 @@ func ModelWithColumName(fdName string, colName string) ModelOpt {
 			return errs.InvalidColumnFdErr(fdName)
 		}
 
+		delete(m.cols, fd.colName)
+		m.cols[colName] = fd
+
 		fd.colName = colName
 		return nil
 	}
 }
 
 type field struct {
+	fdType  reflect.Type
+	fdName  string
 	colName string
 }
 
@@ -138,7 +144,9 @@ func (r *registry) parseModel(entity any) (*model, error) {
 	}
 
 	numField := elemTyp.NumField()
+
 	fds := make(map[string]*field, numField)
+	cols := make(map[string]*field, numField)
 
 	for i := 0; i < numField; i++ {
 		fd := elemTyp.Field(i)
@@ -153,9 +161,14 @@ func (r *registry) parseModel(entity any) (*model, error) {
 			colName = camelToUnderline(fd.Name)
 		}
 
-		fds[fd.Name] = &field{
+		f := &field{
+			fdType:  fd.Type,
+			fdName:  fd.Name,
 			colName: colName,
 		}
+
+		fds[fd.Name] = f
+		cols[colName] = f
 	}
 
 	var tbName string
@@ -170,6 +183,7 @@ func (r *registry) parseModel(entity any) (*model, error) {
 	m := &model{
 		tbName: tbName,
 		fds:    fds,
+		cols:   cols,
 	}
 
 	r.models[typ] = m

@@ -141,6 +141,23 @@ func TestSelector_Get(t *testing.T) {
 			},
 			selector: NewSelector[selectorBuildArg](db).Where(),
 			wantErr:  errors.New("this is an error msg"),
+		}, {
+			name: "basic",
+			mockFunc: func() {
+				rows := sqlmock.NewRows([]string{"id", "age", "first_name", "last_name"})
+				rows.AddRow(1, 18, "Tom", "Cat")
+				mock.ExpectQuery("SELECT .*").WillReturnRows(rows)
+			},
+			selector: NewSelector[selectorBuildArg](db).Where(Col("Id").Eq(1)),
+			wantRes: &selectorBuildArg{
+				Id:        1,
+				Age:       18,
+				FirstName: "Tom",
+				LastName: &sql.NullString{
+					Valid:  true,
+					String: "Cat",
+				},
+			},
 		},
 	}
 

@@ -3,6 +3,8 @@ package orm
 import (
 	"context"
 	"database/sql"
+	"github.com/jrmarcco/easy-orm/internal/errs"
+	"reflect"
 	"strings"
 )
 
@@ -101,7 +103,45 @@ func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
 		return nil, sql.ErrNoRows
 	}
 
-	return nil, nil
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	vals := make([]any, 0, len(cols))
+	valElems := make([]reflect.Value, 0, len(cols))
+
+	for _, col := range cols {
+		fd, ok := s.model.cols[col]
+		if !ok {
+			return nil, errs.InvalidColumnErr(col)
+		}
+
+		// 注意这里 val := reflect.New(fd.fdType)
+		// 创建出来的是 fd.fdType 类型的指针。
+		val := reflect.New(fd.fdType)
+		vals = append(vals, val.Interface())
+		valElems = append(valElems, val.Elem())
+
+	}
+
+	if err = rows.Scan(vals...); err != nil {
+		return nil, err
+	}
+
+	res := new(T)
+	typ := reflect.ValueOf(res)
+
+	for i, col := range cols {
+		fd, ok := s.model.cols[col]
+		if !ok {
+			return nil, errs.InvalidColumnErr(col)
+		}
+
+		typ.Elem().FieldByName(fd.fdName).Set(valElems[i])
+	}
+
+	return res, nil
 }
 
 func (s *Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {

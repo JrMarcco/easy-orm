@@ -12,6 +12,10 @@ var (
 	EmptyColNameErr    = errors.New("empty column name")
 )
 
+func InvalidColumnErr(fd string) error {
+	return fmt.Errorf("invlaid column '%s'", fd)
+}
+
 func InvalidColumnFdErr(fd string) error {
 	return fmt.Errorf("invlaid column field '%s'", fd)
 }
