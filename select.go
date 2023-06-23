@@ -2,16 +2,17 @@ package orm
 
 import (
 	"context"
+	"database/sql"
 	"strings"
 )
 
 type Selector[T any] struct {
 	*builder
 	conds []condition
-	db    *Db
+	db    *DB
 }
 
-func NewSelector[T any](db *Db) *Selector[T] {
+func NewSelector[T any](db *DB) *Selector[T] {
 	return &Selector[T]{
 		builder: newBuilder(),
 		db:      db,
@@ -83,8 +84,24 @@ func (s *Selector[T]) Build() (*Statement, error) {
 }
 
 func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
-	//TODO implement me
-	panic("implement me")
+
+	stat, err := s.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	sqlDB := s.db.sqlDB
+
+	rows, err := sqlDB.QueryContext(ctx, stat.SQL, stat.Args...)
+	if err != nil {
+		return nil, err
+	}
+
+	if !rows.Next() {
+		return nil, sql.ErrNoRows
+	}
+
+	return nil, nil
 }
 
 func (s *Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {

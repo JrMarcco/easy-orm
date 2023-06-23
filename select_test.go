@@ -1,7 +1,10 @@
 package orm
 
 import (
+	"context"
 	"database/sql"
+	"errors"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jrmarcco/easy-orm/internal/errs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -10,7 +13,7 @@ import (
 
 func TestSelector_Build(t *testing.T) {
 
-	db, err := NewDB()
+	db, err := OpenDB(&sql.DB{})
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -110,4 +113,50 @@ type selectorBuildArg struct {
 	Age       int8
 	FirstName string
 	LastName  *sql.NullString
+}
+
+func TestSelector_Get(t *testing.T) {
+	mockDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+
+	db, err := OpenDB(mockDB)
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name     string
+		mockFunc func()
+		selector *Selector[selectorBuildArg]
+		wantRes  *selectorBuildArg
+		wantErr  error
+	}{
+		{
+			name:     "invalid query",
+			selector: NewSelector[selectorBuildArg](db).Where(Col("Invalid").Eq("...")),
+			wantErr:  errs.InvalidColumnFdErr("Invalid"),
+		}, {
+			name: "error return",
+			mockFunc: func() {
+				mock.ExpectQuery("SELECT .*").
+					WillReturnError(errors.New("this is an error msg"))
+			},
+			selector: NewSelector[selectorBuildArg](db).Where(),
+			wantErr:  errors.New("this is an error msg"),
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+
+			if tc.mockFunc != nil {
+				tc.mockFunc()
+			}
+
+			res, err := tc.selector.Get(context.Background())
+			assert.Equal(t, tc.wantErr, err)
+
+			if err == nil {
+				assert.Equal(t, tc.wantRes, res)
+			}
+		})
+	}
 }

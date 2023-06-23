@@ -5,10 +5,10 @@ import "strings"
 type Deletor[T any] struct {
 	*builder
 	conds []condition
-	db    *Db
+	db    *DB
 }
 
-func NewDeletor[T any](db *Db) *Deletor[T] {
+func NewDeletor[T any](db *DB) *Deletor[T] {
 	return &Deletor[T]{
 		builder: newBuilder(),
 		db:      db,
