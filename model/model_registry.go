@@ -1,4 +1,4 @@
-package orm
+package model
 
 import (
 	"github.com/jrmarcco/easy-orm/internal/errs"
@@ -8,79 +8,33 @@ import (
 	"sync"
 )
 
-type model struct {
-	tbName string
-	fds    map[string]*field // fieldName -> field
-	cols   map[string]*field // colName -> field
-}
-
-type ModelOpt func(m *model) error
-
-func ModelWithTbName(tbName string) ModelOpt {
-	return func(m *model) error {
-		if tbName == "" {
-			return errs.EmptyTbNameErr
-		}
-
-		m.tbName = tbName
-		return nil
-	}
-}
-
-func ModelWithColumName(fdName string, colName string) ModelOpt {
-	return func(m *model) error {
-
-		if colName == "" {
-			return errs.EmptyColNameErr
-
-		}
-
-		fd, ok := m.fds[fdName]
-		if !ok {
-			return errs.InvalidColumnFdErr(fdName)
-		}
-
-		delete(m.cols, fd.colName)
-		m.cols[colName] = fd
-
-		fd.colName = colName
-		return nil
-	}
-}
-
-type field struct {
-	fdType  reflect.Type
-	fdName  string
-	colName string
-}
-
 const (
 	tagKeyCol = "column"
 )
 
 type Registry interface {
-	Get(entity any) (*model, error)
-	Register(entity any, opts ...ModelOpt) (*model, error)
+	Get(entity any) (*Model, error)
+	Register(entity any, opts ...Opt) (*Model, error)
 }
 
 var _ Registry = &registry{}
 
 type registry struct {
 	sync.RWMutex
-	models map[reflect.Type]*model
+	models map[reflect.Type]*Model
 }
 
-func newRegistry() Registry {
+func NewRegistry() Registry {
 	return &registry{
-		models: make(map[reflect.Type]*model, 64),
+		models: make(map[reflect.Type]*Model, 64),
 	}
 }
 
-func (r *registry) Get(entity any) (*model, error) {
+func (r *registry) Get(entity any) (*Model, error) {
 	return r.getModel(entity)
 }
 
-func (r *registry) Register(entity any, opts ...ModelOpt) (*model, error) {
+func (r *registry) Register(entity any, opts ...Opt) (*Model, error) {
 	m, err := r.parseModel(entity)
 
 	for _, opt := range opts {
@@ -92,7 +46,7 @@ func (r *registry) Register(entity any, opts ...ModelOpt) (*model, error) {
 	return m, err
 }
 
-func (r *registry) getModel(entity any) (*model, error) {
+func (r *registry) getModel(entity any) (*Model, error) {
 
 	typ := reflect.TypeOf(entity)
 
@@ -121,10 +75,10 @@ func (r *registry) getModel(entity any) (*model, error) {
 	return m, nil
 }
 
-// parseModel 解析 model。
+// parseModel 解析 Model。
 //
 // entity 只能是结构体或指向结构体的一级指针。
-func (r *registry) parseModel(entity any) (*model, error) {
+func (r *registry) parseModel(entity any) (*Model, error) {
 
 	typ := reflect.TypeOf(entity)
 
@@ -145,8 +99,8 @@ func (r *registry) parseModel(entity any) (*model, error) {
 
 	numField := elemTyp.NumField()
 
-	fds := make(map[string]*field, numField)
-	cols := make(map[string]*field, numField)
+	fds := make(map[string]*Field, numField)
+	cols := make(map[string]*Field, numField)
 
 	for i := 0; i < numField; i++ {
 		fd := elemTyp.Field(i)
@@ -161,10 +115,11 @@ func (r *registry) parseModel(entity any) (*model, error) {
 			colName = camelToUnderline(fd.Name)
 		}
 
-		f := &field{
-			fdType:  fd.Type,
-			fdName:  fd.Name,
-			colName: colName,
+		f := &Field{
+			Type:    fd.Type,
+			Name:    fd.Name,
+			ColName: colName,
+			Offset:  fd.Offset,
 		}
 
 		fds[fd.Name] = f
@@ -180,10 +135,10 @@ func (r *registry) parseModel(entity any) (*model, error) {
 		tbName = camelToUnderline(elemTyp.Name())
 	}
 
-	m := &model{
-		tbName: tbName,
-		fds:    fds,
-		cols:   cols,
+	m := &Model{
+		Tb:   tbName,
+		Fds:  fds,
+		Cols: cols,
 	}
 
 	r.models[typ] = m

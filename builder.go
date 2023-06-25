@@ -2,12 +2,13 @@ package orm
 
 import (
 	"github.com/jrmarcco/easy-orm/internal/errs"
+	"github.com/jrmarcco/easy-orm/model"
 	"strings"
 )
 
 type builder struct {
 	tbName string
-	model  *model
+	model  *model.Model
 	sb     *strings.Builder
 	args   []any
 }
@@ -28,13 +29,13 @@ func (b *builder) buildExpr(expr Expression) error {
 	switch exprTyp := expr.(type) {
 	case Column:
 
-		fd, ok := b.model.fds[exprTyp.name]
+		fd, ok := b.model.Fds[exprTyp.name]
 		if !ok {
 			return errs.InvalidColumnFdErr(exprTyp.name)
 		}
 
 		b.sb.WriteByte('`')
-		b.sb.WriteString(fd.colName)
+		b.sb.WriteString(fd.ColName)
 		b.sb.WriteByte('`')
 	case Value:
 		b.sb.WriteByte('?')

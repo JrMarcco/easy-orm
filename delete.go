@@ -43,7 +43,7 @@ func (d *Deletor[T]) Build() (*Statement, error) {
 
 	if d.tbName == "" {
 		d.sb.WriteByte('`')
-		d.sb.WriteString(d.model.tbName)
+		d.sb.WriteString(d.model.Tb)
 		d.sb.WriteByte('`')
 	} else {
 

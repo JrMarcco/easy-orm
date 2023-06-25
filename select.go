@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"github.com/jrmarcco/easy-orm/internal/errs"
-	"reflect"
 	"strings"
 )
 
@@ -55,13 +54,13 @@ func (s *Selector[T]) Build() (*Statement, error) {
 	if len(s.selectFds) > 0 {
 		fdLen := len(s.selectFds)
 		for i, selectFd := range s.selectFds {
-			fd, ok := s.model.fds[selectFd]
+			fd, ok := s.model.Fds[selectFd]
 			if !ok {
 				return nil, errs.InvalidColumnFdErr(selectFd)
 			}
 
 			s.sb.WriteByte('`')
-			s.sb.WriteString(fd.colName)
+			s.sb.WriteString(fd.ColName)
 			s.sb.WriteByte('`')
 
 			if i != fdLen-1 {
@@ -77,7 +76,7 @@ func (s *Selector[T]) Build() (*Statement, error) {
 
 	if s.tbName == "" {
 		s.sb.WriteByte('`')
-		s.sb.WriteString(s.model.tbName)
+		s.sb.WriteString(s.model.Tb)
 		s.sb.WriteByte('`')
 	} else {
 
@@ -132,42 +131,11 @@ func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
 		return nil, sql.ErrNoRows
 	}
 
-	cols, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-
-	vals := make([]any, 0, len(cols))
-	valElems := make([]reflect.Value, 0, len(cols))
-
-	for _, col := range cols {
-		fd, ok := s.model.cols[col]
-		if !ok {
-			return nil, errs.InvalidColumnErr(col)
-		}
-
-		// 注意这里 val := reflect.New(fd.fdType)
-		// 创建出来的是 fd.fdType 类型的指针。
-		val := reflect.New(fd.fdType)
-		vals = append(vals, val.Interface())
-		valElems = append(valElems, val.Elem())
-
-	}
-
-	if err = rows.Scan(vals...); err != nil {
-		return nil, err
-	}
-
 	res := new(T)
-	valElem := reflect.ValueOf(res).Elem()
 
-	for i, col := range cols {
-		fd, ok := s.model.cols[col]
-		if !ok {
-			return nil, errs.InvalidColumnErr(col)
-		}
-
-		valElem.FieldByName(fd.fdName).Set(valElems[i])
+	writer := s.db.creator(s.model, res)
+	if err = writer.WriteCols(rows); err != nil {
+		return nil, err
 	}
 
 	return res, nil

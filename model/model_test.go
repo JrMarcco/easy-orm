@@ -1,4 +1,4 @@
-package orm
+package model
 
 import (
 	"github.com/jrmarcco/easy-orm/internal/errs"
@@ -48,8 +48,8 @@ func TestRegistry_parseModel(t *testing.T) {
 	tcs := []struct {
 		name    string
 		arg     any
-		fds     []*field
-		wantRes *model
+		fds     []*Field
+		wantRes *Model
 		wantErr error
 	}{
 		{
@@ -66,44 +66,50 @@ func TestRegistry_parseModel(t *testing.T) {
 		}, {
 			name: "basic struct",
 			arg:  parseModelArg{},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(int64(0)),
-					fdName:  "ID",
-					colName: "id",
+					Type:    reflect.TypeOf(int64(0)),
+					Name:    "ID",
+					ColName: "id",
+					Offset:  0,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  8,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "NickName",
-					colName: "nick_name",
+					Type:    reflect.TypeOf(""),
+					Name:    "NickName",
+					ColName: "nick_name",
+					Offset:  24,
 				},
 			},
-			wantRes: &model{
-				tbName: "parse_model_arg",
+			wantRes: &Model{
+				Tb: "parse_model_arg",
 			},
 		}, {
 			name: "basic pointer",
 			arg:  &parseModelArg{},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(int64(0)),
-					fdName:  "ID",
-					colName: "id",
+					Type:    reflect.TypeOf(int64(0)),
+					Name:    "ID",
+					ColName: "id",
+					Offset:  0,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  8,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "NickName",
-					colName: "nick_name",
+					Type:    reflect.TypeOf(""),
+					Name:    "NickName",
+					ColName: "nick_name",
+					Offset:  24,
 				},
 			},
-			wantRes: &model{
-				tbName: "parse_model_arg",
+			wantRes: &Model{
+				Tb: "parse_model_arg",
 			},
 		}, {
 			name: "basic tag",
@@ -113,15 +119,15 @@ func TestRegistry_parseModel(t *testing.T) {
 				}
 				return Demo{}
 			}(),
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(uint64(0)),
-					fdName:  "ID",
-					colName: "id_suffix",
+					Type:    reflect.TypeOf(uint64(0)),
+					Name:    "ID",
+					ColName: "id_suffix",
 				},
 			},
-			wantRes: &model{
-				tbName: "demo",
+			wantRes: &Model{
+				Tb: "demo",
 			},
 		}, {
 			name: "tag with space",
@@ -131,15 +137,15 @@ func TestRegistry_parseModel(t *testing.T) {
 				}
 				return Demo{}
 			}(),
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(uint64(0)),
-					fdName:  "ID",
-					colName: "id_suffix",
+					Type:    reflect.TypeOf(uint64(0)),
+					Name:    "ID",
+					ColName: "id_suffix",
 				},
 			},
-			wantRes: &model{
-				tbName: "demo",
+			wantRes: &Model{
+				Tb: "demo",
 			},
 		}, {
 			name: "invalid tag content",
@@ -171,47 +177,50 @@ func TestRegistry_parseModel(t *testing.T) {
 		}, {
 			name: "custom name",
 			arg:  &customTbName{},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  0,
 				},
 			},
-			wantRes: &model{
-				tbName: "custom_name",
+			wantRes: &Model{
+				Tb: "custom_name",
 			},
 		}, {
 			name: "custom name ptr",
 			arg:  &customTbNamePtr{},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  0,
 				},
 			},
-			wantRes: &model{
-				tbName: "custom_name",
+			wantRes: &Model{
+				Tb: "custom_name",
 			},
 		}, {
 			name: "empty custom name",
 			arg:  emptyCustomTbName{},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  0,
 				},
 			},
-			wantRes: &model{
-				tbName: "empty_custom_tb_name",
+			wantRes: &Model{
+				Tb: "empty_custom_tb_name",
 			},
 		},
 	}
 
 	r := &registry{
-		models: make(map[reflect.Type]*model, 64),
+		models: make(map[reflect.Type]*Model, 64),
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -220,22 +229,23 @@ func TestRegistry_parseModel(t *testing.T) {
 			assert.Equal(t, tc.wantErr, err)
 
 			if err == nil {
-				fds := make(map[string]*field, len(tc.fds))
-				cols := make(map[string]*field, len(tc.fds))
+				fds := make(map[string]*Field, len(tc.fds))
+				cols := make(map[string]*Field, len(tc.fds))
 
 				for _, fd := range tc.fds {
-					f := &field{
-						fdType:  fd.fdType,
-						fdName:  fd.fdName,
-						colName: fd.colName,
+					f := &Field{
+						Type:    fd.Type,
+						Name:    fd.Name,
+						ColName: fd.ColName,
+						Offset:  fd.Offset,
 					}
 
-					fds[fd.fdName] = f
-					cols[fd.colName] = f
+					fds[fd.Name] = f
+					cols[fd.ColName] = f
 				}
 
-				tc.wantRes.fds = fds
-				tc.wantRes.cols = cols
+				tc.wantRes.Fds = fds
+				tc.wantRes.Cols = cols
 
 				assert.Equal(t, tc.wantRes, res)
 			}
@@ -277,8 +287,8 @@ func TestRegistry_getModel(t *testing.T) {
 	tcs := []struct {
 		name    string
 		arg     any
-		fds     []*field
-		wantRes *model
+		fds     []*Field
+		wantRes *Model
 		wantErr error
 	}{
 		{
@@ -295,50 +305,56 @@ func TestRegistry_getModel(t *testing.T) {
 		}, {
 			name: "basic struct",
 			arg:  parseModelArg{},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(int64(0)),
-					fdName:  "ID",
-					colName: "id",
+					Type:    reflect.TypeOf(int64(0)),
+					Name:    "ID",
+					ColName: "id",
+					Offset:  0,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  8,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "NickName",
-					colName: "nick_name",
+					Type:    reflect.TypeOf(""),
+					Name:    "NickName",
+					ColName: "nick_name",
+					Offset:  24,
 				},
 			},
-			wantRes: &model{
-				tbName: "parse_model_arg",
+			wantRes: &Model{
+				Tb: "parse_model_arg",
 			},
 		}, {
 			name: "basic pointer",
 			arg:  &parseModelArg{},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(int64(0)),
-					fdName:  "ID",
-					colName: "id",
+					Type:    reflect.TypeOf(int64(0)),
+					Name:    "ID",
+					ColName: "id",
+					Offset:  0,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  8,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "NickName",
-					colName: "nick_name",
+					Type:    reflect.TypeOf(""),
+					Name:    "NickName",
+					ColName: "nick_name",
+					Offset:  24,
 				},
 			},
-			wantRes: &model{
-				tbName: "parse_model_arg",
+			wantRes: &Model{
+				Tb: "parse_model_arg",
 			},
 		},
 	}
 
 	r := &registry{
-		models: make(map[reflect.Type]*model, 8),
+		models: make(map[reflect.Type]*Model, 8),
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -347,22 +363,23 @@ func TestRegistry_getModel(t *testing.T) {
 			assert.Equal(t, tc.wantErr, err)
 
 			if err == nil {
-				fds := make(map[string]*field, len(tc.fds))
-				cols := make(map[string]*field, len(tc.fds))
+				fds := make(map[string]*Field, len(tc.fds))
+				cols := make(map[string]*Field, len(tc.fds))
 
 				for _, fd := range tc.fds {
-					f := &field{
-						fdType:  fd.fdType,
-						fdName:  fd.fdName,
-						colName: fd.colName,
+					f := &Field{
+						Type:    fd.Type,
+						Name:    fd.Name,
+						ColName: fd.ColName,
+						Offset:  fd.Offset,
 					}
 
-					fds[fd.fdName] = f
-					cols[fd.colName] = f
+					fds[fd.Name] = f
+					cols[fd.ColName] = f
 				}
 
-				tc.wantRes.fds = fds
-				tc.wantRes.cols = cols
+				tc.wantRes.Fds = fds
+				tc.wantRes.Cols = cols
 
 				assert.Equal(t, tc.wantRes, res)
 
@@ -379,130 +396,142 @@ func TestRegistry_Register(t *testing.T) {
 	tcs := []struct {
 		name    string
 		entity  any
-		opts    []ModelOpt
-		fds     []*field
+		opts    []Opt
+		fds     []*Field
 		wantErr error
-		wantRes *model
+		wantRes *Model
 	}{
 		{
 			name:   "basis",
 			entity: parseModelArg{},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(int64(0)),
-					fdName:  "ID",
-					colName: "id",
+					Type:    reflect.TypeOf(int64(0)),
+					Name:    "ID",
+					ColName: "id",
+					Offset:  0,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  8,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "NickName",
-					colName: "nick_name",
+					Type:    reflect.TypeOf(""),
+					Name:    "NickName",
+					ColName: "nick_name",
+					Offset:  24,
 				},
 			},
-			wantRes: &model{
-				tbName: "parse_model_arg",
+			wantRes: &Model{
+				Tb: "parse_model_arg",
 			},
 		}, {
 			name:   "with table name opt",
 			entity: parseModelArg{},
-			opts: []ModelOpt{
-				ModelWithTbName("tb_name"),
+			opts: []Opt{
+				WithTbName("tb_name"),
 			},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(int64(0)),
-					fdName:  "ID",
-					colName: "id",
+					Type:    reflect.TypeOf(int64(0)),
+					Name:    "ID",
+					ColName: "id",
+					Offset:  0,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  8,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "NickName",
-					colName: "nick_name",
+					Type:    reflect.TypeOf(""),
+					Name:    "NickName",
+					ColName: "nick_name",
+					Offset:  24,
 				},
 			},
-			wantRes: &model{
-				tbName: "tb_name",
+			wantRes: &Model{
+				Tb: "tb_name",
 			},
 		}, {
 			name:   "with empty table name opt",
 			entity: parseModelArg{},
-			opts: []ModelOpt{
-				ModelWithTbName(""),
+			opts: []Opt{
+				WithTbName(""),
 			},
 			wantErr: errs.EmptyTbNameErr,
 		}, {
 			name:   "with single column name opt",
 			entity: parseModelArg{},
-			opts: []ModelOpt{
-				ModelWithColumName("ID", "id_suffix"),
+			opts: []Opt{
+				WithColName("ID", "id_suffix"),
 			},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(int64(0)),
-					fdName:  "ID",
-					colName: "id_suffix",
+					Type:    reflect.TypeOf(int64(0)),
+					Name:    "ID",
+					ColName: "id_suffix",
+					Offset:  0,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  8,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "NickName",
-					colName: "nick_name",
+					Type:    reflect.TypeOf(""),
+					Name:    "NickName",
+					ColName: "nick_name",
+					Offset:  24,
 				},
 			},
-			wantRes: &model{
-				tbName: "parse_model_arg",
+			wantRes: &Model{
+				Tb: "parse_model_arg",
 			},
 		}, {
 			name:   "with multi column name opt",
 			entity: parseModelArg{},
-			opts: []ModelOpt{
-				ModelWithColumName("ID", "id_suffix"),
-				ModelWithColumName("NickName", "nick_name_suffix"),
+			opts: []Opt{
+				WithColName("ID", "id_suffix"),
+				WithColName("NickName", "nick_name_suffix"),
 			},
-			fds: []*field{
+			fds: []*Field{
 				{
-					fdType:  reflect.TypeOf(int64(0)),
-					fdName:  "ID",
-					colName: "id_suffix",
+					Type:    reflect.TypeOf(int64(0)),
+					Name:    "ID",
+					ColName: "id_suffix",
+					Offset:  0,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "Name",
-					colName: "name",
+					Type:    reflect.TypeOf(""),
+					Name:    "Name",
+					ColName: "name",
+					Offset:  8,
 				}, {
-					fdType:  reflect.TypeOf(""),
-					fdName:  "NickName",
-					colName: "nick_name_suffix",
+					Type:    reflect.TypeOf(""),
+					Name:    "NickName",
+					ColName: "nick_name_suffix",
+					Offset:  24,
 				},
 			},
-			wantRes: &model{
-				tbName: "parse_model_arg",
+			wantRes: &Model{
+				Tb: "parse_model_arg",
 			},
 		}, {
-			name:   "with invalid column field opt",
+			name:   "with invalid column Field opt",
 			entity: parseModelArg{},
-			opts: []ModelOpt{
-				ModelWithColumName("Invalid", "column_name"),
+			opts: []Opt{
+				WithColName("Invalid", "column_name"),
 			},
 			wantErr: errs.InvalidColumnFdErr("Invalid"),
 		}, {
 			name:   "with empty column name opt",
 			entity: parseModelArg{},
-			opts: []ModelOpt{
-				ModelWithColumName("Name", ""),
+			opts: []Opt{
+				WithColName("Name", ""),
 			},
 			wantErr: errs.EmptyColNameErr,
 		},
 	}
 
-	r := newRegistry()
+	r := NewRegistry()
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
@@ -510,22 +539,23 @@ func TestRegistry_Register(t *testing.T) {
 			assert.Equal(t, tc.wantErr, err)
 
 			if err == nil {
-				fds := make(map[string]*field, len(tc.fds))
-				cols := make(map[string]*field, len(tc.fds))
+				fds := make(map[string]*Field, len(tc.fds))
+				cols := make(map[string]*Field, len(tc.fds))
 
 				for _, fd := range tc.fds {
-					f := &field{
-						fdType:  fd.fdType,
-						fdName:  fd.fdName,
-						colName: fd.colName,
+					f := &Field{
+						Type:    fd.Type,
+						Name:    fd.Name,
+						ColName: fd.ColName,
+						Offset:  fd.Offset,
 					}
 
-					fds[fd.fdName] = f
-					cols[fd.colName] = f
+					fds[fd.Name] = f
+					cols[fd.ColName] = f
 				}
 
-				tc.wantRes.fds = fds
-				tc.wantRes.cols = cols
+				tc.wantRes.Fds = fds
+				tc.wantRes.Cols = cols
 
 				assert.Equal(t, tc.wantRes, res)
 			}
