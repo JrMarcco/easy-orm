@@ -129,6 +129,10 @@ func TestSelector_Get(t *testing.T) {
 	mockDB, mock, err := sqlmock.New()
 	require.NoError(t, err)
 
+	defer func(mockDB *sql.DB) {
+		_ = mockDB.Close()
+	}(mockDB)
+
 	db, err := OpenDB(mockDB)
 	require.NoError(t, err)
 
