@@ -8,8 +8,9 @@ import (
 
 type DB struct {
 	registry model.Registry
-	sqlDB    *sql.DB
 	creator  val.Creator
+
+	sqlDB *sql.DB
 }
 
 type DBOpt func(db *DB)
