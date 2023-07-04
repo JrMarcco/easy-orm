@@ -14,7 +14,7 @@ type refVal struct {
 
 var _ Creator = NewRefValWriter
 
-func NewRefValWriter(m *model.Model, v any) Val {
+func NewRefValWriter(m *model.Model, v any) Value {
 	return refVal{
 		m: m,
 		v: v,

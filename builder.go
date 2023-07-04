@@ -29,15 +29,18 @@ func (b *builder) buildExpr(expr Expression) error {
 	switch exprTyp := expr.(type) {
 	case Column:
 
-		fd, ok := b.model.Fds[exprTyp.name]
-		if !ok {
-			return errs.InvalidColumnFdErr(exprTyp.name)
+		if err := b.buildCol(exprTyp); err != nil {
+			return err
 		}
-
-		b.sb.WriteByte('`')
-		b.sb.WriteString(fd.ColName)
-		b.sb.WriteByte('`')
-	case Value:
+		//fd, ok := b.model.Fds[exprTyp.name]
+		//if !ok {
+		//	return errs.InvalidColumnFdErr(exprTyp.name)
+		//}
+		//
+		//b.sb.WriteByte('`')
+		//b.sb.WriteString(fd.ColName)
+		//b.sb.WriteByte('`')
+	case ColumnVal:
 		b.sb.WriteByte('?')
 		b.addArg(exprTyp.val)
 	case Predicate:
@@ -77,6 +80,19 @@ func (b *builder) buildExpr(expr Expression) error {
 	default:
 		return errs.UnsupportedExprErr
 	}
+
+	return nil
+}
+
+func (b *builder) buildCol(col Column) error {
+	fd, ok := b.model.Fds[col.name]
+	if !ok {
+		return errs.InvalidColumnFdErr(col.name)
+	}
+
+	b.sb.WriteByte('`')
+	b.sb.WriteString(fd.ColName)
+	b.sb.WriteByte('`')
 
 	return nil
 }

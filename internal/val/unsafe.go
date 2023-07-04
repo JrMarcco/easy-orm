@@ -15,7 +15,7 @@ type unsafeVal struct {
 
 var _ Creator = NewUnsafeValWriter
 
-func NewUnsafeValWriter(m *model.Model, v any) Val {
+func NewUnsafeValWriter(m *model.Model, v any) Value {
 	return unsafeVal{
 		m:    m,
 		addr: reflect.ValueOf(v).UnsafePointer(),

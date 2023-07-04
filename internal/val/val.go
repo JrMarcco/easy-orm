@@ -5,8 +5,8 @@ import (
 	"github.com/jrmarcco/easy-orm/model"
 )
 
-type Val interface {
+type Value interface {
 	WriteCols(rows *sql.Rows) error
 }
 
-type Creator func(m *model.Model, v any) Val
+type Creator func(m *model.Model, v any) Value

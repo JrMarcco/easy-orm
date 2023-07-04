@@ -3,16 +3,23 @@ package orm
 import (
 	"context"
 	"database/sql"
-	"github.com/jrmarcco/easy-orm/internal/errs"
 	"strings"
 )
 
+// selectable 标记接口
+// 用来标识可选的查询列
+type selectable interface {
+	selectable()
+}
+
 type Selector[T any] struct {
 	*builder
-	selectFds []string
-	conds     []condition
-	db        *DB
+	sas   []selectable
+	conds []condition
+	db    *DB
 }
+
+var _ Querier[any] = new(Selector[any])
 
 func NewSelector[T any](db *DB) *Selector[T] {
 	return &Selector[T]{
@@ -21,8 +28,8 @@ func NewSelector[T any](db *DB) *Selector[T] {
 	}
 }
 
-func (s *Selector[T]) Select(selectFds ...string) *Selector[T] {
-	s.selectFds = selectFds
+func (s *Selector[T]) Select(sas ...selectable) *Selector[T] {
+	s.sas = sas
 	return s
 }
 
@@ -51,21 +58,16 @@ func (s *Selector[T]) Build() (*Statement, error) {
 
 	s.sb.WriteString("SELECT ")
 
-	if len(s.selectFds) > 0 {
-		fdLen := len(s.selectFds)
-		for i, selectFd := range s.selectFds {
-			fd, ok := s.model.Fds[selectFd]
-			if !ok {
-				return nil, errs.InvalidColumnFdErr(selectFd)
-			}
-
-			s.sb.WriteByte('`')
-			s.sb.WriteString(fd.ColName)
-			s.sb.WriteByte('`')
-
-			if i != fdLen-1 {
+	if len(s.sas) > 0 {
+		for i, sa := range s.sas {
+			if i > 0 {
 				s.sb.WriteByte(',')
 			}
+
+			if err = s.buildCol(sa.(Column)); err != nil {
+				return nil, err
+			}
+
 		}
 
 	} else {

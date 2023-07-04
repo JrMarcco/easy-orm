@@ -95,13 +95,13 @@ func TestSelector_Build(t *testing.T) {
 			wantErr: errs.InvalidColumnFdErr("Invalid"),
 		}, {
 			name:    "assign field select",
-			builder: NewSelector[selectorBuildArg](db).Select("Id", "FirstName"),
+			builder: NewSelector[selectorBuildArg](db).Select(Col("Id"), Col("FirstName")),
 			wantStat: &Statement{
 				SQL: "SELECT `id`,`first_name` FROM `selector_build_arg`;",
 			},
 		}, {
 			name:    "assign invalid field select",
-			builder: NewSelector[selectorBuildArg](db).Select("Id", "Invalid"),
+			builder: NewSelector[selectorBuildArg](db).Select(Col("Id"), Col("Invalid")),
 			wantErr: errs.InvalidColumnFdErr("Invalid"),
 		},
 	}
