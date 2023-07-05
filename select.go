@@ -116,14 +116,7 @@ func (s *Selector[T]) Build() (*Statement, error) {
 
 func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
 
-	stat, err := s.Build()
-	if err != nil {
-		return nil, err
-	}
-
-	sqlDB := s.db.sqlDB
-
-	rows, err := sqlDB.QueryContext(ctx, stat.SQL, stat.Args...)
+	rows, err := s.getRows(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +136,31 @@ func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
 }
 
 func (s *Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {
-	//TODO implement me
-	panic("implement me")
+	rows, err := s.getRows(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res := make([]*T, 0, 8)
+	for rows.Next() {
+		val := new(T)
+		writer := s.db.creator(s.model, val)
+		if err := writer.WriteCols(rows); err != nil {
+			return nil, err
+		}
+
+		res = append(res, val)
+	}
+	return res, nil
+}
+
+func (s *Selector[T]) getRows(ctx context.Context) (*sql.Rows, error) {
+	stat, err := s.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	sqlDB := s.db.sqlDB
+
+	return sqlDB.QueryContext(ctx, stat.SQL, stat.Args...)
 }

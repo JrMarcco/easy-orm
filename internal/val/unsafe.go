@@ -38,7 +38,7 @@ func (u unsafeVal) WriteCols(rows *sql.Rows) error {
 
 		ptr := unsafe.Pointer(uintptr(u.addr) + fd.Offset)
 		if ptr == nil {
-			return errs.InvalidColumnFdErr(col)
+			return errs.InvalidColumnErr(col)
 		}
 
 		// 注意这里 val := reflect.NewAt(fd.Type, ptr)

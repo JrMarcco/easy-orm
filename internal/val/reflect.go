@@ -41,7 +41,6 @@ func (r refVal) WriteCols(rows *sql.Rows) error {
 		val := reflect.New(fd.Type)
 		vals = append(vals, val.Interface())
 		valElems = append(valElems, val.Elem())
-
 	}
 
 	if err = rows.Scan(vals...); err != nil {
