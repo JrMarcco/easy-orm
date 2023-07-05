@@ -64,10 +64,9 @@ func (s *Selector[T]) Build() (*Statement, error) {
 				s.sb.WriteByte(',')
 			}
 
-			if err = s.buildCol(sa.(Column)); err != nil {
+			if err = s.buildSelectable(sa); err != nil {
 				return nil, err
 			}
-
 		}
 
 	} else {

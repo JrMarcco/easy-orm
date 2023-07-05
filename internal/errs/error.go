@@ -6,10 +6,11 @@ import (
 )
 
 var (
-	InvalidTypeErr     = errors.New("invalid type, only support struct and first-level pointer")
-	UnsupportedExprErr = errors.New("unsupported expression type")
-	EmptyTbNameErr     = errors.New("empty table name")
-	EmptyColNameErr    = errors.New("empty column name")
+	InvalidTypeErr           = errors.New("invalid type, only support struct and first-level pointer")
+	UnsupportedExprErr       = errors.New("unsupported expression type")
+	UnsupportedSelectableErr = errors.New("unsupported selectable type")
+	EmptyTbNameErr           = errors.New("empty table name")
+	EmptyColNameErr          = errors.New("empty column name")
 )
 
 func InvalidColumnErr(fd string) error {

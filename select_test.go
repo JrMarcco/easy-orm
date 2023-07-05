@@ -42,7 +42,7 @@ func TestSelector_Build(t *testing.T) {
 				SQL: "SELECT * FROM `selector_build_arg`;",
 			},
 		}, {
-			name:    "basic * select with from db name",
+			name:    "basic * select with from db fdName",
 			builder: NewSelector[selectorBuildArg](db).From("test_db.test_model"),
 			wantStat: &Statement{
 				SQL: "SELECT * FROM `test_db`.`test_model`;",
@@ -102,6 +102,46 @@ func TestSelector_Build(t *testing.T) {
 		}, {
 			name:    "assign invalid field select",
 			builder: NewSelector[selectorBuildArg](db).Select(Col("Id"), Col("Invalid")),
+			wantErr: errs.InvalidColumnFdErr("Invalid"),
+		}, {
+			name:    "avg aggregate func select",
+			builder: NewSelector[selectorBuildArg](db).Select(Avg("Age")),
+			wantStat: &Statement{
+				SQL: "SELECT AVG(`age`) FROM `selector_build_arg`;",
+			},
+		}, {
+			name:    "sum aggregate func select",
+			builder: NewSelector[selectorBuildArg](db).Select(Sum("Age")),
+			wantStat: &Statement{
+				SQL: "SELECT SUM(`age`) FROM `selector_build_arg`;",
+			},
+		}, {
+			name:    "count aggregate func select",
+			builder: NewSelector[selectorBuildArg](db).Select(Count("Age")),
+			wantStat: &Statement{
+				SQL: "SELECT COUNT(`age`) FROM `selector_build_arg`;",
+			},
+		}, {
+			name:    "max aggregate func select",
+			builder: NewSelector[selectorBuildArg](db).Select(Max("FirstName")),
+			wantStat: &Statement{
+				SQL: "SELECT MAX(`first_name`) FROM `selector_build_arg`;",
+			},
+		}, {
+			name:    "min aggregate func select",
+			builder: NewSelector[selectorBuildArg](db).Select(Min("Id")),
+			wantStat: &Statement{
+				SQL: "SELECT MIN(`id`) FROM `selector_build_arg`;",
+			},
+		}, {
+			name:    "multi aggregate func select",
+			builder: NewSelector[selectorBuildArg](db).Select(Max("FirstName"), Min("Id")),
+			wantStat: &Statement{
+				SQL: "SELECT MAX(`first_name`),MIN(`id`) FROM `selector_build_arg`;",
+			},
+		}, {
+			name:    "invalid field aggregate func select",
+			builder: NewSelector[selectorBuildArg](db).Select(Avg("Invalid")),
 			wantErr: errs.InvalidColumnFdErr("Invalid"),
 		},
 	}

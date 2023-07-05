@@ -39,7 +39,7 @@ func TestDeletor_Build(t *testing.T) {
 				SQL: "DELETE FROM `deletor_build_arg`;",
 			},
 		}, {
-			name:    "basic * select with from db name",
+			name:    "basic * select with from db fdName",
 			builder: NewDeletor[deletorBuildArg](db).From("test_db.test_model"),
 			wantStat: &Statement{
 				SQL: "DELETE FROM `test_db`.`test_model`;",

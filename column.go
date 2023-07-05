@@ -1,7 +1,7 @@
 package orm
 
 type Column struct {
-	name string
+	fdName string
 }
 
 var _ Expression = new(Column)
@@ -14,7 +14,7 @@ func (c Column) selectable() {}
 // Col 列信息
 // 一般作为左子表达式出现。
 func Col(name string) Column {
-	return Column{name: name}
+	return Column{fdName: name}
 }
 
 func (c Column) Eq(val any) Predicate {
