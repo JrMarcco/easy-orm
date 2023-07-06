@@ -34,6 +34,9 @@ func (b *builder) buildExpr(expr Expression) error {
 	case ColumnVal:
 		b.sb.WriteByte('?')
 		b.addArg(exprTyp.val)
+	case RawExpr:
+		b.sb.WriteString(exprTyp.raw)
+		b.addArg(exprTyp.args...)
 	case Predicate:
 
 		if _, lok := exprTyp.left.(Predicate); lok {
@@ -49,15 +52,17 @@ func (b *builder) buildExpr(expr Expression) error {
 			b.sb.WriteByte(')')
 		}
 
-		if exprTyp.left != nil {
-			b.sb.WriteByte(' ')
-		}
-		b.sb.WriteString(string(exprTyp.op))
-		if exprTyp.right != nil {
-			b.sb.WriteByte(' ')
-		}
-		if _, rok := exprTyp.right.(Predicate); rok {
-			b.sb.WriteByte('(')
+		if exprTyp.op != "" {
+			if exprTyp.left != nil {
+				b.sb.WriteByte(' ')
+			}
+			b.sb.WriteString(string(exprTyp.op))
+			if exprTyp.right != nil {
+				b.sb.WriteByte(' ')
+			}
+			if _, rok := exprTyp.right.(Predicate); rok {
+				b.sb.WriteByte('(')
+			}
 		}
 
 		// 递归右子表达式
@@ -85,6 +90,9 @@ func (b *builder) buildSelectable(sa selectable) error {
 		if err := b.buildAggregate(saType); err != nil {
 			return err
 		}
+	case RawExpr:
+		b.sb.WriteString(saType.raw)
+		b.addArg(saType.args...)
 	default:
 		return errs.UnsupportedSelectableErr
 	}
@@ -119,9 +127,13 @@ func (b *builder) buildAggregate(ag Aggregate) error {
 	return nil
 }
 
-func (b *builder) addArg(val any) {
+func (b *builder) addArg(vals ...any) {
+	if len(vals) == 0 {
+		return
+	}
+
 	if b.args == nil {
 		b.args = make([]any, 0, 4)
 	}
-	b.args = append(b.args, val)
+	b.args = append(b.args, vals...)
 }

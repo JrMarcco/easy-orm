@@ -51,6 +51,12 @@ var _ Expression = new(ColumnVal)
 
 func (v ColumnVal) expr() {}
 
-func valOf(val any) ColumnVal {
-	return ColumnVal{val: val}
+func valOf(val any) Expression {
+
+	switch valTyp := val.(type) {
+	case Predicate:
+		return valTyp
+	default:
+		return ColumnVal{val: val}
+	}
 }

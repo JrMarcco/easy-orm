@@ -143,6 +143,30 @@ func TestSelector_Build(t *testing.T) {
 			name:    "invalid field aggregate func select",
 			builder: NewSelector[selectorBuildArg](db).Select(Avg("Invalid")),
 			wantErr: errs.InvalidColumnFdErr("Invalid"),
+		}, {
+			name:    "raw expression",
+			builder: NewSelector[selectorBuildArg](db).Select(Raw("COUNT(`Id`) AS id_count")),
+			wantStat: &Statement{
+				SQL: "SELECT COUNT(`Id`) AS id_count FROM `selector_build_arg`;",
+			},
+		}, {
+			name: "raw expression in where",
+			builder: NewSelector[selectorBuildArg](db).Where(
+				Raw("`first_name` LIKE %?%", "jrmarcco").AsPredicate(),
+			),
+			wantStat: &Statement{
+				SQL:  "SELECT * FROM `selector_build_arg` WHERE `first_name` LIKE %?%;",
+				Args: []any{"jrmarcco"},
+			},
+		}, {
+			name: "row expression in predicate",
+			builder: NewSelector[selectorBuildArg](db).Where(
+				Col("Id").Eq(Raw("`age` + ?", 10000).AsPredicate()),
+			),
+			wantStat: &Statement{
+				SQL:  "SELECT * FROM `selector_build_arg` WHERE `id` = (`age` + ?);",
+				Args: []any{10000},
+			},
 		},
 	}
 

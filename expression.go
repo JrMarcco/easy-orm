@@ -6,3 +6,28 @@ package orm
 type Expression interface {
 	expr()
 }
+
+// RawExpr 原生表达式
+type RawExpr struct {
+	raw  string
+	args []any
+}
+
+var _ Expression = new(RawExpr)
+var _ selectable = new(RawExpr)
+
+func (r RawExpr) expr()       {}
+func (r RawExpr) selectable() {}
+
+func (r RawExpr) AsPredicate() Predicate {
+	return Predicate{
+		left: r,
+	}
+}
+
+func Raw(expr string, args ...any) RawExpr {
+	return RawExpr{
+		raw:  expr,
+		args: args,
+	}
+}
