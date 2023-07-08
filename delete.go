@@ -2,25 +2,25 @@ package orm
 
 import "strings"
 
-type Deletor[T any] struct {
+type Deleter[T any] struct {
 	*builder
 	conds []condition
 	db    *DB
 }
 
-func NewDeletor[T any](db *DB) *Deletor[T] {
-	return &Deletor[T]{
+func NewDeleter[T any](db *DB) *Deleter[T] {
+	return &Deleter[T]{
 		builder: newBuilder(),
 		db:      db,
 	}
 }
 
-func (d *Deletor[T]) From(tbName string) *Deletor[T] {
+func (d *Deleter[T]) From(tbName string) *Deleter[T] {
 	d.tbName = tbName
 	return d
 }
 
-func (d *Deletor[T]) Where(predicates ...Predicate) *Deletor[T] {
+func (d *Deleter[T]) Where(predicates ...Predicate) *Deleter[T] {
 	if d.conds == nil {
 		d.conds = make([]condition, 0, 2)
 	}
@@ -31,7 +31,7 @@ func (d *Deletor[T]) Where(predicates ...Predicate) *Deletor[T] {
 	return d
 }
 
-func (d *Deletor[T]) Build() (*Statement, error) {
+func (d *Deleter[T]) Build() (*Statement, error) {
 
 	var err error
 	if d.model, err = d.db.registry.Get(new(T)); err != nil {
