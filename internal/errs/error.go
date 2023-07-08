@@ -11,6 +11,7 @@ var (
 	UnsupportedSelectableErr = errors.New("unsupported selectable type")
 	EmptyTbNameErr           = errors.New("empty table name")
 	EmptyColNameErr          = errors.New("empty column name")
+	EmptyInserRowErr         = errors.New("insert row can not be empty")
 )
 
 func InvalidColumnErr(fd string) error {

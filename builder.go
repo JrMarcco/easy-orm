@@ -19,7 +19,31 @@ func newBuilder() *builder {
 	}
 }
 
-// 构建表达式。
+func (b *builder) writeTbName() {
+
+	if b.tbName == "" {
+		b.sb.WriteByte('`')
+		b.sb.WriteString(b.model.Tb)
+		b.sb.WriteByte('`')
+
+		return
+	}
+
+	segs := strings.SplitN(b.tbName, ".", 2)
+
+	b.sb.WriteByte('`')
+	b.sb.WriteString(segs[0])
+	b.sb.WriteByte('`')
+
+	if len(segs) > 1 {
+		b.sb.WriteString(".`")
+		b.sb.WriteString(segs[1])
+		b.sb.WriteByte('`')
+	}
+}
+
+//	buildExpr 构建表达式
+//
 // 该过程本是上是一个深度优先遍历二叉树的过程。
 func (b *builder) buildExpr(expr Expression) error {
 	if expr == nil {

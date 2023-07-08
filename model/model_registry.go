@@ -101,6 +101,7 @@ func (r *registry) parseModel(entity any) (*Model, error) {
 
 	fds := make(map[string]*Field, numField)
 	cols := make(map[string]*Field, numField)
+	seqFds := make([]*Field, 0, numField)
 
 	for i := 0; i < numField; i++ {
 		fd := elemTyp.Field(i)
@@ -124,6 +125,7 @@ func (r *registry) parseModel(entity any) (*Model, error) {
 
 		fds[fd.Name] = f
 		cols[colName] = f
+		seqFds = append(seqFds, f)
 	}
 
 	var tbName string
@@ -136,9 +138,10 @@ func (r *registry) parseModel(entity any) (*Model, error) {
 	}
 
 	m := &Model{
-		Tb:   tbName,
-		Fds:  fds,
-		Cols: cols,
+		Tb:     tbName,
+		Fds:    fds,
+		Cols:   cols,
+		SeqFds: seqFds,
 	}
 
 	r.models[typ] = m

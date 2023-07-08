@@ -3,7 +3,6 @@ package orm
 import (
 	"context"
 	"database/sql"
-	"strings"
 )
 
 // selectable 标记接口
@@ -74,27 +73,7 @@ func (s *Selector[T]) Build() (*Statement, error) {
 	}
 
 	s.sb.WriteString(" FROM ")
-
-	if s.tbName == "" {
-		s.sb.WriteByte('`')
-		s.sb.WriteString(s.model.Tb)
-		s.sb.WriteByte('`')
-	} else {
-
-		segs := strings.SplitN(s.tbName, ".", 2)
-
-		s.sb.WriteByte('`')
-		s.sb.WriteString(segs[0])
-		s.sb.WriteByte('`')
-
-		if len(segs) > 1 {
-			s.sb.WriteByte('.')
-			s.sb.WriteByte('`')
-			s.sb.WriteString(segs[1])
-			s.sb.WriteByte('`')
-		}
-
-	}
+	s.writeTbName()
 
 	if len(s.conds) > 0 {
 		for _, cond := range s.conds {
