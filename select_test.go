@@ -167,6 +167,40 @@ func TestSelector_Build(t *testing.T) {
 				SQL:  "SELECT * FROM `selector_build_arg` WHERE `id` = (`age` + ?);",
 				Args: []any{10000},
 			},
+		}, {
+			name: "alias",
+			builder: NewSelector[selectorBuildArg](db).Select(
+				Col("FirstName").As("aliasName"),
+			),
+			wantStat: &Statement{
+				SQL: "SELECT `first_name` AS `aliasName` FROM `selector_build_arg`;",
+			},
+		}, {
+			name: "multi alias",
+			builder: NewSelector[selectorBuildArg](db).Select(
+				Col("Id").As("aliasId"),
+				Col("FirstName").As("aliasName"),
+			),
+			wantStat: &Statement{
+				SQL: "SELECT `id` AS `aliasId`,`first_name` AS `aliasName` FROM `selector_build_arg`;",
+			},
+		}, {
+			name: "alias in aggregate",
+			builder: NewSelector[selectorBuildArg](db).Select(
+				Avg("Age").As("avgAge"),
+			),
+			wantStat: &Statement{
+				SQL: "SELECT AVG(`age`) AS `avgAge` FROM `selector_build_arg`;",
+			},
+		}, {
+			name: "multi alias in aggregate",
+			builder: NewSelector[selectorBuildArg](db).Select(
+				Avg("Age").As("avgAge"),
+				Sum("Age").As("sumAge"),
+			),
+			wantStat: &Statement{
+				SQL: "SELECT AVG(`age`) AS `avgAge`,SUM(`age`) AS `sumAge` FROM `selector_build_arg`;",
+			},
 		},
 	}
 

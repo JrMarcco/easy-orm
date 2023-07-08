@@ -110,6 +110,12 @@ func (b *builder) buildCol(col Column) error {
 	b.sb.WriteString(fd.ColName)
 	b.sb.WriteByte('`')
 
+	if col.alias != "" {
+		b.sb.WriteString(" AS `")
+		b.sb.WriteString(col.alias)
+		b.sb.WriteByte('`')
+	}
+
 	return nil
 }
 
@@ -123,6 +129,12 @@ func (b *builder) buildAggregate(ag Aggregate) error {
 	b.sb.WriteString("(`")
 	b.sb.WriteString(fd.ColName)
 	b.sb.WriteString("`)")
+
+	if ag.alias != "" {
+		b.sb.WriteString(" AS `")
+		b.sb.WriteString(ag.alias)
+		b.sb.WriteByte('`')
+	}
 
 	return nil
 }

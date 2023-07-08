@@ -3,11 +3,20 @@ package orm
 type Aggregate struct {
 	fnName string
 	fdName string
+	alias  string
 }
 
 var _ selectable = new(Aggregate)
 
 func (a Aggregate) selectable() {}
+
+func (a Aggregate) As(alias string) Aggregate {
+	return Aggregate{
+		fnName: a.fnName,
+		fdName: a.fdName,
+		alias:  alias,
+	}
+}
 
 func Avg(fdName string) Aggregate {
 	return Aggregate{

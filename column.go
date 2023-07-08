@@ -2,6 +2,7 @@ package orm
 
 type Column struct {
 	fdName string
+	alias  string
 }
 
 var _ Expression = new(Column)
@@ -15,6 +16,13 @@ func (c Column) selectable() {}
 // 一般作为左子表达式出现。
 func Col(name string) Column {
 	return Column{fdName: name}
+}
+
+func (c Column) As(alias string) Column {
+	return Column{
+		fdName: c.fdName,
+		alias:  alias,
+	}
 }
 
 func (c Column) Eq(val any) Predicate {
