@@ -70,6 +70,48 @@ func TestInserter_Build(t *testing.T) {
 					uint64(2), "tom cat", &sql.NullString{Valid: true, String: "cat"}, int64(1),
 				},
 			},
+		}, {
+			name: "assign insert column field",
+			inserter: NewInserter[inserterBuildArg](db).ColFd("Id", "Name").Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+				},
+			),
+			wantStat: &Statement{
+				SQL: "INSERT INTO `inserter_build_arg`(`id`,`name`) VALUES (?,?);",
+				Args: []any{
+					uint64(1), "jrmarcco",
+				},
+			},
+		}, {
+			name: "assign invalid insert column field",
+			inserter: NewInserter[inserterBuildArg](db).ColFd("Id", "Invalid").Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+				},
+			),
+			wantErr: errs.InvalidColumnFdErr("Invalid"),
+		}, {
+			name: "assign insert column field with multi row",
+			inserter: NewInserter[inserterBuildArg](db).ColFd("Id", "Name").Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+				},
+				&inserterBuildArg{
+					Id:   uint64(2),
+					Name: "tom cat",
+				},
+			),
+			wantStat: &Statement{
+				SQL: "INSERT INTO `inserter_build_arg`(`id`,`name`) VALUES (?,?),(?,?);",
+				Args: []any{
+					uint64(1), "jrmarcco",
+					uint64(2), "tom cat",
+				},
+			},
 		},
 	}
 

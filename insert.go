@@ -2,13 +2,15 @@ package orm
 
 import (
 	"github.com/jrmarcco/easy-orm/internal/errs"
+	"github.com/jrmarcco/easy-orm/model"
 	"reflect"
 )
 
 type Inserter[T any] struct {
 	*builder
-	rows []*T
-	db   *DB
+	colFds []string
+	rows   []*T
+	db     *DB
 }
 
 func NewInserter[T any](db *DB) *Inserter[T] {
@@ -16,6 +18,11 @@ func NewInserter[T any](db *DB) *Inserter[T] {
 		builder: newBuilder(),
 		db:      db,
 	}
+}
+
+func (i *Inserter[T]) ColFd(colFds ...string) *Inserter[T] {
+	i.colFds = colFds
+	return i
 }
 
 func (i *Inserter[T]) Row(rows ...*T) *Inserter[T] {
@@ -34,12 +41,27 @@ func (i *Inserter[T]) Build() (*Statement, error) {
 		return nil, err
 	}
 
+	seqFds := i.model.SeqFds
+
+	// 用户指定插入列
+	if len(i.colFds) > 0 {
+		seqFds = make([]*model.Field, 0, len(i.colFds))
+		for _, colFd := range i.colFds {
+			fd, ok := i.model.Fds[colFd]
+			if !ok {
+				return nil, errs.InvalidColumnFdErr(colFd)
+			}
+
+			seqFds = append(seqFds, fd)
+		}
+	}
+
 	i.sb.WriteString("INSERT INTO ")
 	i.writeTbName()
 
 	i.sb.WriteByte('(')
 
-	for idx, fd := range i.model.SeqFds {
+	for idx, fd := range seqFds {
 
 		if idx > 0 {
 			i.sb.WriteByte(',')
@@ -52,7 +74,7 @@ func (i *Inserter[T]) Build() (*Statement, error) {
 
 	i.sb.WriteString(") VALUES ")
 
-	args := make([]any, 0, len(i.model.SeqFds))
+	args := make([]any, 0, len(seqFds)*len(i.rows))
 
 	for rowIdx, row := range i.rows {
 
@@ -62,7 +84,7 @@ func (i *Inserter[T]) Build() (*Statement, error) {
 
 		i.sb.WriteByte('(')
 
-		for fdIdx, fd := range i.model.SeqFds {
+		for fdIdx, fd := range seqFds {
 
 			if fdIdx > 0 {
 				i.sb.WriteByte(',')
