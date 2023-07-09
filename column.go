@@ -1,21 +1,32 @@
 package orm
 
 type Column struct {
-	fdName string
-	alias  string
+	fdName  string
+	alias   string
+	ufdName string
 }
 
 var _ Expression = new(Column)
 var _ selectable = new(Column)
 
-func (c Column) expr() {}
-
+func (c Column) expr()       {}
 func (c Column) selectable() {}
+func (c Column) assign()     {}
 
 // Col 列信息
 // 一般作为左子表达式出现。
-func Col(name string) Column {
-	return Column{fdName: name}
+func Col(fdName string) Column {
+	return Column{
+		fdName:  fdName,
+		ufdName: fdName,
+	}
+}
+
+func ColWithUpdate(fdName string, ufdName string) Column {
+	return Column{
+		fdName:  fdName,
+		ufdName: ufdName,
+	}
 }
 
 func (c Column) As(alias string) Column {

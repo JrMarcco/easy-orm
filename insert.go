@@ -10,7 +10,10 @@ type Inserter[T any] struct {
 	*builder
 	colFds []string
 	rows   []*T
+	args   []any
 	db     *DB
+
+	duplicateKey *OnDuplicateKey
 }
 
 func NewInserter[T any](db *DB) *Inserter[T] {
@@ -30,10 +33,16 @@ func (i *Inserter[T]) Row(rows ...*T) *Inserter[T] {
 	return i
 }
 
+func (i *Inserter[T]) OnDuplicateKey() *OnDuplicateBuilder[T] {
+	return &OnDuplicateBuilder[T]{
+		inserter: i,
+	}
+}
+
 func (i *Inserter[T]) Build() (*Statement, error) {
 
 	if len(i.rows) == 0 {
-		return nil, errs.EmptyInserRowErr
+		return nil, errs.EmptyInsertRowErr
 	}
 
 	var err error
@@ -41,6 +50,26 @@ func (i *Inserter[T]) Build() (*Statement, error) {
 		return nil, err
 	}
 
+	i.sb.WriteString("INSERT INTO ")
+	i.writeTbName()
+
+	if err = i.buildInsertCol(); err != nil {
+		return nil, err
+	}
+
+	if err = i.buildOnDuplicateKey(); err != nil {
+		return nil, err
+	}
+
+	i.sb.WriteByte(';')
+
+	return &Statement{
+		SQL:  i.sb.String(),
+		Args: i.args,
+	}, nil
+}
+
+func (i *Inserter[T]) buildInsertCol() error {
 	seqFds := i.model.SeqFds
 
 	// 用户指定插入列
@@ -49,15 +78,12 @@ func (i *Inserter[T]) Build() (*Statement, error) {
 		for _, colFd := range i.colFds {
 			fd, ok := i.model.Fds[colFd]
 			if !ok {
-				return nil, errs.InvalidColumnFdErr(colFd)
+				return errs.InvalidColumnFdErr(colFd)
 			}
 
 			seqFds = append(seqFds, fd)
 		}
 	}
-
-	i.sb.WriteString("INSERT INTO ")
-	i.writeTbName()
 
 	i.sb.WriteByte('(')
 
@@ -74,7 +100,7 @@ func (i *Inserter[T]) Build() (*Statement, error) {
 
 	i.sb.WriteString(") VALUES ")
 
-	args := make([]any, 0, len(seqFds)*len(i.rows))
+	i.args = make([]any, 0, len(seqFds)*len(i.rows))
 
 	for rowIdx, row := range i.rows {
 
@@ -85,23 +111,77 @@ func (i *Inserter[T]) Build() (*Statement, error) {
 		i.sb.WriteByte('(')
 
 		for fdIdx, fd := range seqFds {
-
 			if fdIdx > 0 {
 				i.sb.WriteByte(',')
 			}
 			i.sb.WriteByte('?')
 
 			rowVal := reflect.ValueOf(row).Elem().FieldByName(fd.Name).Interface()
-			args = append(args, rowVal)
+			i.args = append(i.args, rowVal)
 		}
 		i.sb.WriteByte(')')
-
 	}
 
-	i.sb.WriteByte(';')
+	return nil
+}
 
-	return &Statement{
-		SQL:  i.sb.String(),
-		Args: args,
-	}, nil
+func (i *Inserter[T]) buildOnDuplicateKey() error {
+	if i.duplicateKey != nil {
+
+		i.sb.WriteString(" ON DUPLICATE KEY UPDATE ")
+
+		for idx, assignable := range i.duplicateKey.onConflict {
+			if idx > 0 {
+				i.sb.WriteByte(',')
+			}
+
+			switch typ := assignable.(type) {
+			case Assignment:
+				fd, ok := i.model.Fds[typ.fdName]
+				if !ok {
+					return errs.InvalidColumnFdErr(typ.fdName)
+				}
+
+				i.sb.WriteByte('`')
+				i.sb.WriteString(fd.ColName)
+				i.sb.WriteString("`=?")
+
+				i.args = append(i.args, typ.val)
+			case Column:
+				typ.alias = ""
+				if err := i.buildCol(typ); err != nil {
+					return err
+				}
+
+				i.sb.WriteString("=VALUES(`")
+
+				ufd, ok := i.model.Fds[typ.ufdName]
+				if !ok {
+					return errs.InvalidColumnFdErr(typ.ufdName)
+				}
+
+				i.sb.WriteString(ufd.ColName)
+				i.sb.WriteString("`)")
+			default:
+				return errs.InvalidAssignmentErr
+			}
+		}
+	}
+
+	return nil
+}
+
+type OnDuplicateKey struct {
+	onConflict []Assignable
+}
+
+type OnDuplicateBuilder[T any] struct {
+	inserter *Inserter[T]
+}
+
+func (o *OnDuplicateBuilder[T]) Update(onConflict ...Assignable) *Inserter[T] {
+	o.inserter.duplicateKey = &OnDuplicateKey{
+		onConflict: onConflict,
+	}
+	return o.inserter
 }

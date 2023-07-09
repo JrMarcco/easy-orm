@@ -7,11 +7,12 @@ import (
 
 var (
 	InvalidTypeErr           = errors.New("invalid type, only support struct and first-level pointer")
+	InvalidAssignmentErr     = errors.New("invalid assigment type")
 	UnsupportedExprErr       = errors.New("unsupported expression type")
 	UnsupportedSelectableErr = errors.New("unsupported selectable type")
 	EmptyTbNameErr           = errors.New("empty table name")
 	EmptyColNameErr          = errors.New("empty column name")
-	EmptyInserRowErr         = errors.New("insert row can not be empty")
+	EmptyInsertRowErr        = errors.New("insert row can not be empty")
 )
 
 func InvalidColumnErr(fd string) error {

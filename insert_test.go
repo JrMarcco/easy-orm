@@ -21,7 +21,7 @@ func TestInserter_Build(t *testing.T) {
 		{
 			name:     "empty row",
 			inserter: NewInserter[inserterBuildArg](db),
-			wantErr:  errs.EmptyInserRowErr,
+			wantErr:  errs.EmptyInsertRowErr,
 		}, {
 			name: "single row",
 			inserter: NewInserter[inserterBuildArg](db).Row(
@@ -71,7 +71,7 @@ func TestInserter_Build(t *testing.T) {
 				},
 			},
 		}, {
-			name: "assign insert column field",
+			name: "specify insert column field",
 			inserter: NewInserter[inserterBuildArg](db).ColFd("Id", "Name").Row(
 				&inserterBuildArg{
 					Id:   uint64(1),
@@ -85,7 +85,7 @@ func TestInserter_Build(t *testing.T) {
 				},
 			},
 		}, {
-			name: "assign invalid insert column field",
+			name: "specify invalid insert column field",
 			inserter: NewInserter[inserterBuildArg](db).ColFd("Id", "Invalid").Row(
 				&inserterBuildArg{
 					Id:   uint64(1),
@@ -94,7 +94,7 @@ func TestInserter_Build(t *testing.T) {
 			),
 			wantErr: errs.InvalidColumnFdErr("Invalid"),
 		}, {
-			name: "assign insert column field with multi row",
+			name: "specify insert column field with multi row",
 			inserter: NewInserter[inserterBuildArg](db).ColFd("Id", "Name").Row(
 				&inserterBuildArg{
 					Id:   uint64(1),
@@ -112,6 +112,80 @@ func TestInserter_Build(t *testing.T) {
 					uint64(2), "tom cat",
 				},
 			},
+		}, {
+			name: "update column on duplicate key",
+			inserter: NewInserter[inserterBuildArg](db).Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+					NickName: &sql.NullString{
+						Valid:  true,
+						String: "foo bar",
+					},
+					Balance: int64(100),
+				},
+			).OnDuplicateKey().Update(Col("NickName")),
+			wantStat: &Statement{
+				SQL: "INSERT INTO `inserter_build_arg`(`id`,`name`,`nick_name`,`balance`) VALUES (?,?,?,?) " +
+					"ON DUPLICATE KEY UPDATE `nick_name`=VALUES(`nick_name`);",
+				Args: []any{
+					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100),
+				},
+			},
+		}, {
+			name: "update column with assign field on duplicate key",
+			inserter: NewInserter[inserterBuildArg](db).Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+					NickName: &sql.NullString{
+						Valid:  true,
+						String: "foo bar",
+					},
+					Balance: int64(100),
+				},
+			).OnDuplicateKey().Update(ColWithUpdate("NickName", "Name")),
+			wantStat: &Statement{
+				SQL: "INSERT INTO `inserter_build_arg`(`id`,`name`,`nick_name`,`balance`) VALUES (?,?,?,?) " +
+					"ON DUPLICATE KEY UPDATE `nick_name`=VALUES(`name`);",
+				Args: []any{
+					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100),
+				},
+			},
+		}, {
+			name: "update column with value on duplicate key",
+			inserter: NewInserter[inserterBuildArg](db).Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+					NickName: &sql.NullString{
+						Valid:  true,
+						String: "foo bar",
+					},
+					Balance: int64(100),
+				},
+			).OnDuplicateKey().Update(Assign("NickName", "jrmarcco"), Assign("Balance", int64(10000))),
+			wantStat: &Statement{
+				SQL: "INSERT INTO `inserter_build_arg`(`id`,`name`,`nick_name`,`balance`) VALUES (?,?,?,?) " +
+					"ON DUPLICATE KEY UPDATE `nick_name`=?,`balance`=?;",
+				Args: []any{
+					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100), "jrmarcco", int64(10000),
+				},
+			},
+		}, {
+			name: "update column with value on duplicate key",
+			inserter: NewInserter[inserterBuildArg](db).Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+					NickName: &sql.NullString{
+						Valid:  true,
+						String: "foo bar",
+					},
+					Balance: int64(100),
+				},
+			).OnDuplicateKey().Update(invalidAssign{}),
+			wantErr: errs.InvalidAssignmentErr,
 		},
 	}
 
@@ -133,3 +207,8 @@ type inserterBuildArg struct {
 	NickName *sql.NullString
 	Balance  int64
 }
+
+type invalidAssign struct {
+}
+
+func (i invalidAssign) assign() {}
