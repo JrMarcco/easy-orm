@@ -13,7 +13,7 @@ import (
 
 func TestSelector_Build(t *testing.T) {
 
-	db, err := OpenDB(&sql.DB{})
+	db, err := OpenDB(&sql.DB{}, DBWithDialect(MySqlDialect))
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -231,7 +231,7 @@ func TestSelector_Get(t *testing.T) {
 		_ = mockDB.Close()
 	}(mockDB)
 
-	db, err := OpenDB(mockDB)
+	db, err := OpenDB(mockDB, DBWithDialect(MySqlDialect))
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -298,7 +298,7 @@ func TestSelector_GetMulti(t *testing.T) {
 		_ = mockDB.Close()
 	}(mockDB)
 
-	db, err := OpenDB(mockDB)
+	db, err := OpenDB(mockDB, DBWithDialect(MySqlDialect))
 	require.NoError(t, err)
 
 	tcs := []struct {

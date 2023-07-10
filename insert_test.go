@@ -9,7 +9,7 @@ import (
 )
 
 func TestInserter_Build(t *testing.T) {
-	db, err := OpenDB(&sql.DB{})
+	db, err := OpenDB(&sql.DB{}, DBWithDialect(MySqlDialect))
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -164,12 +164,12 @@ func TestInserter_Build(t *testing.T) {
 					},
 					Balance: int64(100),
 				},
-			).OnDuplicateKey().Update(Assign("NickName", "jrmarcco"), Assign("Balance", int64(10000))),
+			).OnDuplicateKey().Update(Assign("NickName", "nick foo"), Assign("Balance", int64(10000))),
 			wantStat: &Statement{
 				SQL: "INSERT INTO `inserter_build_arg`(`id`,`name`,`nick_name`,`balance`) VALUES (?,?,?,?) " +
 					"ON DUPLICATE KEY UPDATE `nick_name`=?,`balance`=?;",
 				Args: []any{
-					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100), "jrmarcco", int64(10000),
+					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100), "nick foo", int64(10000),
 				},
 			},
 		}, {

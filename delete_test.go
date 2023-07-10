@@ -10,7 +10,7 @@ import (
 
 func TestDeletor_Build(t *testing.T) {
 
-	db, err := OpenDB(&sql.DB{})
+	db, err := OpenDB(&sql.DB{}, DBWithDialect(MySqlDialect))
 	require.NoError(t, err)
 
 	tcs := []struct {

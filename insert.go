@@ -7,18 +7,16 @@ import (
 )
 
 type Inserter[T any] struct {
-	*builder
-	colFds []string
-	rows   []*T
-	args   []any
-	db     *DB
-
-	duplicateKey *OnDuplicateKey
+	builder
+	colFds     []string
+	rows       []*T
+	db         *DB
+	onConflict *OnConflict
 }
 
 func NewInserter[T any](db *DB) *Inserter[T] {
 	return &Inserter[T]{
-		builder: newBuilder(),
+		builder: newBuilder(db.dialect),
 		db:      db,
 	}
 }
@@ -33,8 +31,8 @@ func (i *Inserter[T]) Row(rows ...*T) *Inserter[T] {
 	return i
 }
 
-func (i *Inserter[T]) OnDuplicateKey() *OnDuplicateBuilder[T] {
-	return &OnDuplicateBuilder[T]{
+func (i *Inserter[T]) OnDuplicateKey() *OnDuplicateKey[T] {
+	return &OnDuplicateKey[T]{
 		inserter: i,
 	}
 }
@@ -57,8 +55,10 @@ func (i *Inserter[T]) Build() (*Statement, error) {
 		return nil, err
 	}
 
-	if err = i.buildOnDuplicateKey(); err != nil {
-		return nil, err
+	if i.onConflict != nil {
+		if err = i.dialect.onConflict(&i.builder, i.onConflict); err != nil {
+			return nil, err
+		}
 	}
 
 	i.sb.WriteByte(';')
@@ -93,9 +93,7 @@ func (i *Inserter[T]) buildInsertCol() error {
 			i.sb.WriteByte(',')
 		}
 
-		i.sb.WriteByte('`')
-		i.sb.WriteString(fd.ColName)
-		i.sb.WriteByte('`')
+		i.writeQuote(fd.ColName)
 	}
 
 	i.sb.WriteString(") VALUES ")
@@ -125,63 +123,13 @@ func (i *Inserter[T]) buildInsertCol() error {
 	return nil
 }
 
-func (i *Inserter[T]) buildOnDuplicateKey() error {
-	if i.duplicateKey != nil {
-
-		i.sb.WriteString(" ON DUPLICATE KEY UPDATE ")
-
-		for idx, assignable := range i.duplicateKey.onConflict {
-			if idx > 0 {
-				i.sb.WriteByte(',')
-			}
-
-			switch typ := assignable.(type) {
-			case Assignment:
-				fd, ok := i.model.Fds[typ.fdName]
-				if !ok {
-					return errs.InvalidColumnFdErr(typ.fdName)
-				}
-
-				i.sb.WriteByte('`')
-				i.sb.WriteString(fd.ColName)
-				i.sb.WriteString("`=?")
-
-				i.args = append(i.args, typ.val)
-			case Column:
-				typ.alias = ""
-				if err := i.buildCol(typ); err != nil {
-					return err
-				}
-
-				i.sb.WriteString("=VALUES(`")
-
-				ufd, ok := i.model.Fds[typ.ufdName]
-				if !ok {
-					return errs.InvalidColumnFdErr(typ.ufdName)
-				}
-
-				i.sb.WriteString(ufd.ColName)
-				i.sb.WriteString("`)")
-			default:
-				return errs.InvalidAssignmentErr
-			}
-		}
-	}
-
-	return nil
-}
-
-type OnDuplicateKey struct {
-	onConflict []Assignable
-}
-
-type OnDuplicateBuilder[T any] struct {
+type OnDuplicateKey[T any] struct {
 	inserter *Inserter[T]
 }
 
-func (o *OnDuplicateBuilder[T]) Update(onConflict ...Assignable) *Inserter[T] {
-	o.inserter.duplicateKey = &OnDuplicateKey{
-		onConflict: onConflict,
+func (o *OnDuplicateKey[T]) Update(conflicts ...Assignable) *Inserter[T] {
+	o.inserter.onConflict = &OnConflict{
+		conflicts: conflicts,
 	}
 	return o.inserter
 }

@@ -9,36 +9,40 @@ import (
 type builder struct {
 	tbName string
 	model  *model.Model
-	sb     *strings.Builder
+	sb     strings.Builder
 	args   []any
+
+	dialect Dialect
+	quote   byte
 }
 
-func newBuilder() *builder {
-	return &builder{
-		sb: &strings.Builder{},
+func newBuilder(dialect Dialect) builder {
+	return builder{
+		sb:      strings.Builder{},
+		dialect: dialect,
+		quote:   dialect.quote(),
 	}
 }
 
+func (b *builder) writeQuote(name string) {
+	b.sb.WriteByte(b.quote)
+	b.sb.WriteString(name)
+	b.sb.WriteByte(b.quote)
+}
+
 func (b *builder) writeTbName() {
-
 	if b.tbName == "" {
-		b.sb.WriteByte('`')
-		b.sb.WriteString(b.model.Tb)
-		b.sb.WriteByte('`')
-
+		b.writeQuote(b.model.Tb)
 		return
 	}
 
 	segs := strings.SplitN(b.tbName, ".", 2)
 
-	b.sb.WriteByte('`')
-	b.sb.WriteString(segs[0])
-	b.sb.WriteByte('`')
+	b.writeQuote(segs[0])
 
 	if len(segs) > 1 {
-		b.sb.WriteString(".`")
-		b.sb.WriteString(segs[1])
-		b.sb.WriteByte('`')
+		b.sb.WriteByte('.')
+		b.writeQuote(segs[1])
 	}
 }
 
@@ -130,14 +134,11 @@ func (b *builder) buildCol(col Column) error {
 		return errs.InvalidColumnFdErr(col.fdName)
 	}
 
-	b.sb.WriteByte('`')
-	b.sb.WriteString(fd.ColName)
-	b.sb.WriteByte('`')
+	b.writeQuote(fd.ColName)
 
 	if col.alias != "" {
-		b.sb.WriteString(" AS `")
-		b.sb.WriteString(col.alias)
-		b.sb.WriteByte('`')
+		b.sb.WriteString(" AS ")
+		b.writeQuote(col.alias)
 	}
 
 	return nil
@@ -150,14 +151,14 @@ func (b *builder) buildAggregate(ag Aggregate) error {
 	}
 
 	b.sb.WriteString(ag.fnName)
-	b.sb.WriteString("(`")
-	b.sb.WriteString(fd.ColName)
-	b.sb.WriteString("`)")
+
+	b.sb.WriteByte('(')
+	b.writeQuote(fd.ColName)
+	b.sb.WriteByte(')')
 
 	if ag.alias != "" {
-		b.sb.WriteString(" AS `")
-		b.sb.WriteString(ag.alias)
-		b.sb.WriteByte('`')
+		b.sb.WriteString(" AS ")
+		b.writeQuote(ag.alias)
 	}
 
 	return nil

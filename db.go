@@ -9,6 +9,7 @@ import (
 type DB struct {
 	registry model.Registry
 	creator  val.Creator
+	dialect  Dialect
 
 	sqlDB *sql.DB
 }
@@ -21,8 +22,13 @@ func DDWithValCreator(creator val.Creator) DBOpt {
 	}
 }
 
-func Open(driver string, dsn string, opts ...DBOpt) (*DB, error) {
+func DBWithDialect(dialect Dialect) DBOpt {
+	return func(db *DB) {
+		db.dialect = dialect
+	}
+}
 
+func Open(driver string, dsn string, opts ...DBOpt) (*DB, error) {
 	sqlDB, err := sql.Open(driver, dsn)
 	if err != nil {
 		return nil, err
@@ -34,8 +40,8 @@ func Open(driver string, dsn string, opts ...DBOpt) (*DB, error) {
 func OpenDB(sqlDB *sql.DB, opts ...DBOpt) (*DB, error) {
 	db := &DB{
 		registry: model.NewRegistry(),
-		sqlDB:    sqlDB,
 		creator:  val.NewUnsafeValWriter,
+		sqlDB:    sqlDB,
 	}
 
 	for _, opt := range opts {

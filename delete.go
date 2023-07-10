@@ -3,14 +3,14 @@ package orm
 import "strings"
 
 type Deleter[T any] struct {
-	*builder
+	builder
 	conds []condition
 	db    *DB
 }
 
 func NewDeleter[T any](db *DB) *Deleter[T] {
 	return &Deleter[T]{
-		builder: newBuilder(),
+		builder: newBuilder(db.dialect),
 		db:      db,
 	}
 }
@@ -38,26 +38,20 @@ func (d *Deleter[T]) Build() (*Statement, error) {
 		return nil, err
 	}
 
-	d.sb = &strings.Builder{}
+	d.sb = strings.Builder{}
 	d.sb.WriteString("DELETE FROM ")
 
 	if d.tbName == "" {
-		d.sb.WriteByte('`')
-		d.sb.WriteString(d.model.Tb)
-		d.sb.WriteByte('`')
+		d.writeQuote(d.model.Tb)
 	} else {
 
 		segs := strings.SplitN(d.tbName, ".", 2)
 
-		d.sb.WriteByte('`')
-		d.sb.WriteString(segs[0])
-		d.sb.WriteByte('`')
+		d.writeQuote(segs[0])
 
 		if len(segs) > 1 {
 			d.sb.WriteByte('.')
-			d.sb.WriteByte('`')
-			d.sb.WriteString(segs[1])
-			d.sb.WriteByte('`')
+			d.writeQuote(segs[1])
 		}
 
 	}

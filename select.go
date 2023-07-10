@@ -12,7 +12,7 @@ type selectable interface {
 }
 
 type Selector[T any] struct {
-	*builder
+	builder
 	sas   []selectable
 	conds []condition
 	db    *DB
@@ -22,7 +22,7 @@ var _ Querier[any] = new(Selector[any])
 
 func NewSelector[T any](db *DB) *Selector[T] {
 	return &Selector[T]{
-		builder: newBuilder(),
+		builder: newBuilder(db.dialect),
 		db:      db,
 	}
 }
