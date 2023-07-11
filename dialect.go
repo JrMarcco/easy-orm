@@ -12,7 +12,8 @@ type Dialect interface {
 }
 
 type OnConflict struct {
-	conflicts []Assignable
+	conflicts []string
+	assigns   []Assignable
 }
 
 type standardSQL struct {
@@ -43,12 +44,12 @@ func (m mysql) onConflict(b *builder, onConflict *OnConflict) error {
 
 	b.sb.WriteString(" ON DUPLICATE KEY UPDATE ")
 
-	for idx, assignable := range onConflict.conflicts {
+	for idx, assign := range onConflict.assigns {
 		if idx > 0 {
 			b.sb.WriteByte(',')
 		}
 
-		switch typ := assignable.(type) {
+		switch typ := assign.(type) {
 		case Assignment:
 			fd, ok := b.model.Fds[typ.fdName]
 			if !ok {
