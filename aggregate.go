@@ -1,5 +1,6 @@
 package orm
 
+// Aggregate 聚合类型
 type Aggregate struct {
 	fnName string
 	fdName string

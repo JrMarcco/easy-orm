@@ -124,7 +124,7 @@ func TestInserter_Build(t *testing.T) {
 					},
 					Balance: int64(100),
 				},
-			).OnDuplicateKey().Update(Col("NickName")),
+			).OnConflicts().Update(Col("NickName")),
 			wantStat: &Statement{
 				SQL: "INSERT INTO `inserter_build_arg`(`id`,`name`,`nick_name`,`balance`) VALUES (?,?,?,?) " +
 					"ON DUPLICATE KEY UPDATE `nick_name`=VALUES(`nick_name`);",
@@ -144,7 +144,7 @@ func TestInserter_Build(t *testing.T) {
 					},
 					Balance: int64(100),
 				},
-			).OnDuplicateKey().Update(ColWithUpdate("NickName", "Name")),
+			).OnConflicts().Update(ColWithUpdate("NickName", "Name")),
 			wantStat: &Statement{
 				SQL: "INSERT INTO `inserter_build_arg`(`id`,`name`,`nick_name`,`balance`) VALUES (?,?,?,?) " +
 					"ON DUPLICATE KEY UPDATE `nick_name`=VALUES(`name`);",
@@ -164,7 +164,7 @@ func TestInserter_Build(t *testing.T) {
 					},
 					Balance: int64(100),
 				},
-			).OnDuplicateKey().Update(Assign("NickName", "nick foo"), Assign("Balance", int64(10000))),
+			).OnConflicts().Update(Assign("NickName", "nick foo"), Assign("Balance", int64(10000))),
 			wantStat: &Statement{
 				SQL: "INSERT INTO `inserter_build_arg`(`id`,`name`,`nick_name`,`balance`) VALUES (?,?,?,?) " +
 					"ON DUPLICATE KEY UPDATE `nick_name`=?,`balance`=?;",
@@ -184,7 +184,7 @@ func TestInserter_Build(t *testing.T) {
 					},
 					Balance: int64(100),
 				},
-			).OnDuplicateKey().Update(invalidAssign{}),
+			).OnConflicts().Update(invalidAssign{}),
 			wantErr: errs.InvalidAssignmentErr,
 		},
 	}
@@ -212,3 +212,88 @@ type invalidAssign struct {
 }
 
 func (i invalidAssign) assign() {}
+
+func TestInserter_Build_StandardSQL(t *testing.T) {
+	db, err := OpenDB(&sql.DB{}, DBWithDialect(StandardSQL))
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name     string
+		inserter StatBuilder
+		wantStat *Statement
+		wantErr  error
+	}{
+		{
+			name: "update column on duplicate key",
+			inserter: NewInserter[inserterBuildArg](db).Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+					NickName: &sql.NullString{
+						Valid:  true,
+						String: "foo bar",
+					},
+					Balance: int64(100),
+				},
+			).OnConflicts("NickName").Update(Col("NickName")),
+			wantStat: &Statement{
+				SQL: `INSERT INTO "inserter_build_arg"("id","name","nick_name","balance") VALUES (?,?,?,?) ` +
+					`ON CONFLICT ("nick_name") DO UPDATE SET "nick_name"=EXCLUDED."nick_name";`,
+				Args: []any{
+					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100),
+				},
+			},
+		}, {
+			name: "update column with assign field on duplicate key",
+			inserter: NewInserter[inserterBuildArg](db).Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+					NickName: &sql.NullString{
+						Valid:  true,
+						String: "foo bar",
+					},
+					Balance: int64(100),
+				},
+			).OnConflicts("NickName").Update(ColWithUpdate("NickName", "Name")),
+			wantStat: &Statement{
+				SQL: `INSERT INTO "inserter_build_arg"("id","name","nick_name","balance") VALUES (?,?,?,?) ` +
+					`ON CONFLICT ("nick_name") DO UPDATE SET "nick_name"=EXCLUDED."name";`,
+				Args: []any{
+					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100),
+				},
+			},
+		}, {
+			name: "update multi column with assign field on duplicate key",
+			inserter: NewInserter[inserterBuildArg](db).Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+					NickName: &sql.NullString{
+						Valid:  true,
+						String: "foo bar",
+					},
+					Balance: int64(100),
+				},
+			).OnConflicts("Id").Update(Col("NickName"), Col("Balance")),
+			wantStat: &Statement{
+				SQL: `INSERT INTO "inserter_build_arg"("id","name","nick_name","balance") VALUES (?,?,?,?) ` +
+					`ON CONFLICT ("id") DO UPDATE SET "nick_name"=EXCLUDED."nick_name","balance"=EXCLUDED."balance";`,
+				Args: []any{
+					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100),
+				},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			stat, err := tc.inserter.Build()
+			assert.Equal(t, tc.wantErr, err)
+
+			if err == nil {
+				assert.Equal(t, tc.wantStat, stat)
+			}
+		})
+	}
+}

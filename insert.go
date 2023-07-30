@@ -31,10 +31,16 @@ func (i *Inserter[T]) Row(rows ...*T) *Inserter[T] {
 	return i
 }
 
-func (i *Inserter[T]) OnDuplicateKey() *OnConflictBuilder[T] {
-	return &OnConflictBuilder[T]{
+func (i *Inserter[T]) OnConflicts(conflicts ...string) *OnConflictBuilder[T] {
+	b := &OnConflictBuilder[T]{
 		inserter: i,
 	}
+
+	if len(conflicts) != 0 {
+		b.conflicts = conflicts
+	}
+
+	return b
 }
 
 func (i *Inserter[T]) Build() (*Statement, error) {
@@ -124,12 +130,14 @@ func (i *Inserter[T]) buildInsertCol() error {
 }
 
 type OnConflictBuilder[T any] struct {
-	inserter *Inserter[T]
+	conflicts []string
+	inserter  *Inserter[T]
 }
 
 func (o *OnConflictBuilder[T]) Update(assigns ...Assignable) *Inserter[T] {
 	o.inserter.onConflict = &OnConflict{
-		assigns: assigns,
+		conflicts: o.conflicts,
+		assigns:   assigns,
 	}
 	return o.inserter
 }
