@@ -33,11 +33,9 @@ func (s standardSQL) onConflict(b *builder, onConflict *OnConflict) error {
 		if idx > 0 {
 			b.sb.WriteByte(',')
 		}
-		fd, ok := b.model.Fds[conflict]
-		if !ok {
-			return errs.InvalidColumnFdErr(conflict)
+		if err := b.writeField(conflict); err != nil {
+			return err
 		}
-		b.writeQuote(fd.ColName)
 	}
 
 	b.sb.WriteString(") DO UPDATE SET ")
@@ -53,20 +51,16 @@ func (s standardSQL) onConflict(b *builder, onConflict *OnConflict) error {
 				return err
 			}
 		case Column:
-			fd, ok := b.model.Fds[typ.fdName]
-			if !ok {
-				return errs.InvalidColumnFdErr(typ.fdName)
+			typ.alias = ""
+			if err := b.buildCol(typ); err != nil {
+				return err
 			}
 
-			b.writeQuote(fd.ColName)
 			b.sb.WriteString("=EXCLUDED.")
 
-			ufd, ok := b.model.Fds[typ.ufdName]
-			if !ok {
-				return errs.InvalidColumnFdErr(typ.ufdName)
+			if err := b.writeField(typ.ufdName); err != nil {
+				return err
 			}
-
-			b.writeQuote(ufd.ColName)
 		}
 	}
 	return nil
@@ -104,12 +98,10 @@ func (m mysql) onConflict(b *builder, onConflict *OnConflict) error {
 
 			b.sb.WriteString("=VALUES(")
 
-			ufd, ok := b.model.Fds[typ.ufdName]
-			if !ok {
-				return errs.InvalidColumnFdErr(typ.ufdName)
+			if err := b.writeField(typ.ufdName); err != nil {
+				return err
 			}
 
-			b.writeQuote(ufd.ColName)
 			b.sb.WriteByte(')')
 		default:
 			return errs.InvalidAssignmentErr

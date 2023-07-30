@@ -46,6 +46,16 @@ func (b *builder) writeTbName() {
 	}
 }
 
+func (b *builder) writeField(fdName string) error {
+	fd, ok := b.model.Fds[fdName]
+	if !ok {
+		return errs.InvalidColumnFdErr(fdName)
+	}
+	b.writeQuote(fd.ColName)
+
+	return nil
+}
+
 //	buildExpr 构建表达式
 //
 // 该过程本是上是一个深度优先遍历二叉树的过程。
@@ -129,12 +139,9 @@ func (b *builder) buildSelectable(sa selectable) error {
 }
 
 func (b *builder) buildCol(col Column) error {
-	fd, ok := b.model.Fds[col.fdName]
-	if !ok {
-		return errs.InvalidColumnFdErr(col.fdName)
+	if err := b.writeField(col.fdName); err != nil {
+		return err
 	}
-
-	b.writeQuote(fd.ColName)
 
 	if col.alias != "" {
 		b.sb.WriteString(" AS ")
@@ -165,14 +172,11 @@ func (b *builder) buildAggregate(ag Aggregate) error {
 }
 
 func (b *builder) buildAssign(assign Assignment) error {
-	fd, ok := b.model.Fds[assign.fdName]
-	if !ok {
-		return errs.InvalidColumnFdErr(assign.fdName)
+	if err := b.writeField(assign.fdName); err != nil {
+		return err
 	}
 
-	b.writeQuote(fd.ColName)
 	b.sb.WriteString("=?")
-
 	b.addArg(assign.val)
 
 	return nil
