@@ -49,6 +49,9 @@ func (s standardSQL) onConflict(b *builder, onConflict *OnConflict) error {
 
 		switch typ := assign.(type) {
 		case Assignment:
+			if err := b.buildAssign(typ); err != nil {
+				return err
+			}
 		case Column:
 			fd, ok := b.model.Fds[typ.fdName]
 			if !ok {
@@ -90,15 +93,9 @@ func (m mysql) onConflict(b *builder, onConflict *OnConflict) error {
 
 		switch typ := assign.(type) {
 		case Assignment:
-			fd, ok := b.model.Fds[typ.fdName]
-			if !ok {
-				return errs.InvalidColumnFdErr(typ.fdName)
+			if err := b.buildAssign(typ); err != nil {
+				return err
 			}
-
-			b.writeQuote(fd.ColName)
-			b.sb.WriteString("=?")
-
-			b.addArg(typ.val)
 		case Column:
 			typ.alias = ""
 			if err := b.buildCol(typ); err != nil {

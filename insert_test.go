@@ -283,6 +283,26 @@ func TestInserter_Build_StandardSQL(t *testing.T) {
 					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100),
 				},
 			},
+		}, {
+			name: "update column with value on duplicate key",
+			inserter: NewInserter[inserterBuildArg](db).Row(
+				&inserterBuildArg{
+					Id:   uint64(1),
+					Name: "jrmarcco",
+					NickName: &sql.NullString{
+						Valid:  true,
+						String: "foo bar",
+					},
+					Balance: int64(100),
+				},
+			).OnConflicts("Id", "Name").Update(Assign("NickName", "nick foo"), Assign("Balance", int64(10000))),
+			wantStat: &Statement{
+				SQL: `INSERT INTO "inserter_build_arg"("id","name","nick_name","balance") VALUES (?,?,?,?) ` +
+					`ON CONFLICT ("id","name") DO UPDATE SET "nick_name"=?,"balance"=?;`,
+				Args: []any{
+					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100), "nick foo", int64(10000),
+				},
+			},
 		},
 	}
 

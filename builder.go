@@ -164,6 +164,20 @@ func (b *builder) buildAggregate(ag Aggregate) error {
 	return nil
 }
 
+func (b *builder) buildAssign(assign Assignment) error {
+	fd, ok := b.model.Fds[assign.fdName]
+	if !ok {
+		return errs.InvalidColumnFdErr(assign.fdName)
+	}
+
+	b.writeQuote(fd.ColName)
+	b.sb.WriteString("=?")
+
+	b.addArg(assign.val)
+
+	return nil
+}
+
 func (b *builder) addArg(vals ...any) {
 	if len(vals) == 0 {
 		return
