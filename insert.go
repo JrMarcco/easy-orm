@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/jrmarcco/easy-orm/internal/errs"
 	"github.com/jrmarcco/easy-orm/model"
-	"reflect"
 )
 
 type Inserter[T any] struct {
@@ -108,20 +107,23 @@ func (i *Inserter[T]) buildInsertCol() error {
 	i.args = make([]any, 0, len(seqFds)*len(i.rows))
 
 	for rowIdx, row := range i.rows {
-
 		if rowIdx > 0 {
 			i.sb.WriteByte(',')
 		}
 
 		i.sb.WriteByte('(')
 
+		valCreator := i.db.creator(i.model, row)
 		for fdIdx, fd := range seqFds {
 			if fdIdx > 0 {
 				i.sb.WriteByte(',')
 			}
 			i.sb.WriteByte('?')
 
-			rowVal := reflect.ValueOf(row).Elem().FieldByName(fd.Name).Interface()
+			rowVal, err := valCreator.ReadCol(fd.Name)
+			if err != nil {
+				return err
+			}
 			i.args = append(i.args, rowVal)
 		}
 		i.sb.WriteByte(')')

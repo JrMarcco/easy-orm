@@ -9,7 +9,7 @@ import (
 
 type refVal struct {
 	m *model.Model
-	v any
+	v reflect.Value
 }
 
 var _ Creator = NewRefValWriter
@@ -17,8 +17,12 @@ var _ Creator = NewRefValWriter
 func NewRefValWriter(m *model.Model, v any) Value {
 	return refVal{
 		m: m,
-		v: v,
+		v: reflect.ValueOf(v).Elem(),
 	}
+}
+
+func (r refVal) ReadCol(fdName string) (any, error) {
+	return r.v.FieldByName(fdName).Interface(), nil
 }
 
 func (r refVal) WriteCols(rows *sql.Rows) error {
@@ -47,15 +51,13 @@ func (r refVal) WriteCols(rows *sql.Rows) error {
 		return err
 	}
 
-	valElem := reflect.ValueOf(r.v).Elem()
-
 	for i, col := range cols {
 		fd, ok := r.m.Cols[col]
 		if !ok {
 			return errs.InvalidColumnErr(col)
 		}
 
-		valElem.FieldByName(fd.Name).Set(valElems[i])
+		r.v.FieldByName(fd.Name).Set(valElems[i])
 	}
 	return nil
 }
