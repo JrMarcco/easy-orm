@@ -3,6 +3,7 @@ package orm
 import (
 	"context"
 	"database/sql"
+	"strconv"
 )
 
 // selectable 标记接口
@@ -13,9 +14,11 @@ type selectable interface {
 
 type Selector[T any] struct {
 	builder
-	sas   []selectable
-	conds []condition
-	db    *DB
+	sas    []selectable
+	conds  []condition
+	limit  int64
+	offset int64
+	db     *DB
 }
 
 var _ Querier[any] = new(Selector[any])
@@ -23,6 +26,8 @@ var _ Querier[any] = new(Selector[any])
 func NewSelector[T any](db *DB) *Selector[T] {
 	return &Selector[T]{
 		builder: newBuilder(db.dialect),
+		limit:   0,
+		offset:  -1,
 		db:      db,
 	}
 }
@@ -45,6 +50,24 @@ func (s *Selector[T]) Where(predicates ...Predicate) *Selector[T] {
 	if len(predicates) > 0 {
 		s.conds = append(s.conds, newCond(condTypWhere, predicates))
 	}
+	return s
+}
+
+func (s *Selector[T]) GroupBy() *Selector[T] {
+	panic("implement me")
+}
+
+func (s *Selector[T]) Having() *Selector[T] {
+	panic("implement me")
+}
+
+func (s *Selector[T]) Limit(limit int64) *Selector[T] {
+	s.limit = limit
+	return s
+}
+
+func (s *Selector[T]) Offset(offset int64) *Selector[T] {
+	s.offset = offset
 	return s
 }
 
@@ -83,6 +106,16 @@ func (s *Selector[T]) Build() (*Statement, error) {
 				return nil, err
 			}
 		}
+	}
+
+	if s.limit != 0 {
+		s.sb.WriteString(" LIMIT ")
+		s.sb.WriteString(strconv.FormatInt(s.limit, 10))
+	}
+
+	if s.offset != -1 {
+		s.sb.WriteString(" OFFSET ")
+		s.sb.WriteString(strconv.FormatInt(s.offset, 10))
 	}
 
 	s.sb.WriteByte(';')

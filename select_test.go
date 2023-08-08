@@ -201,6 +201,24 @@ func TestSelector_Build(t *testing.T) {
 			wantStat: &Statement{
 				SQL: "SELECT AVG(`age`) AS `avgAge`,SUM(`age`) AS `sumAge` FROM `selector_build_arg`;",
 			},
+		}, {
+			name:    "with limit",
+			builder: NewSelector[selectorBuildArg](db).Limit(1),
+			wantStat: &Statement{
+				SQL: "SELECT * FROM `selector_build_arg` LIMIT 1;",
+			},
+		}, {
+			name:    "with offset",
+			builder: NewSelector[selectorBuildArg](db).Offset(10),
+			wantStat: &Statement{
+				SQL: "SELECT * FROM `selector_build_arg` OFFSET 10;",
+			},
+		}, {
+			name:    "with limit and offset",
+			builder: NewSelector[selectorBuildArg](db).Limit(1).Offset(10),
+			wantStat: &Statement{
+				SQL: "SELECT * FROM `selector_build_arg` LIMIT 1 OFFSET 10;",
+			},
 		},
 	}
 
