@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"context"
 	"github.com/jrmarcco/easy-orm/internal/errs"
 	"github.com/jrmarcco/easy-orm/model"
 	"reflect"
@@ -127,6 +128,23 @@ func (i *Inserter[T]) buildInsertCol() error {
 	}
 
 	return nil
+}
+
+func (i *Inserter[T]) Exec(ctx context.Context) Result {
+
+	stat, err := i.Build()
+	if err != nil {
+		return Result{err: err}
+	}
+
+	res, err := i.db.sqlDB.ExecContext(ctx, stat.SQL, stat.Args...)
+	if err != nil {
+		return Result{err: err}
+	}
+
+	return Result{
+		res: res,
+	}
 }
 
 type OnConflictBuilder[T any] struct {

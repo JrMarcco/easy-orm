@@ -14,7 +14,7 @@ type Querier[T any] interface {
 // Executor 执行器
 // insert / update / delete 语句
 type Executor interface {
-	Exec(ctx context.Context) (Result, error)
+	Exec(ctx context.Context) Result
 }
 
 type Statement struct {

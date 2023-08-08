@@ -11,10 +11,22 @@ func (r Result) Err() error {
 	return r.err
 }
 
-func (r Result) LastInsertId() (int64, error) {
-	return r.res.LastInsertId()
+func (r Result) LastInsertId() int64 {
+	id, err := r.res.LastInsertId()
+	if err != nil {
+		r.err = err
+		return 0
+	}
+
+	return id
 }
 
-func (r Result) RowsAffected() (int64, error) {
-	return r.res.RowsAffected()
+func (r Result) RowsAffected() int64 {
+	rowsAffected, err := r.res.RowsAffected()
+	if err != nil {
+		r.err = err
+		return 0
+	}
+
+	return rowsAffected
 }

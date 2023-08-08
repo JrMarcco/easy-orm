@@ -1,13 +1,28 @@
 package orm
 
 import (
+	"context"
 	"database/sql"
+	"database/sql/driver"
+	"errors"
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jrmarcco/easy-orm/internal/errs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
+type inserterBuildArg struct {
+	Id       uint64
+	Name     string
+	NickName *sql.NullString
+	Balance  int64
+}
+
+type invalidAssign struct {
+}
+
+func (i invalidAssign) assign() {}
 func TestInserter_Build(t *testing.T) {
 	db, err := OpenDB(&sql.DB{}, DBWithDialect(MySqlDialect))
 	require.NoError(t, err)
@@ -201,18 +216,6 @@ func TestInserter_Build(t *testing.T) {
 	}
 }
 
-type inserterBuildArg struct {
-	Id       uint64
-	Name     string
-	NickName *sql.NullString
-	Balance  int64
-}
-
-type invalidAssign struct {
-}
-
-func (i invalidAssign) assign() {}
-
 func TestInserter_Build_StandardSQL(t *testing.T) {
 	db, err := OpenDB(&sql.DB{}, DBWithDialect(StandardSQL))
 	require.NoError(t, err)
@@ -313,6 +316,63 @@ func TestInserter_Build_StandardSQL(t *testing.T) {
 
 			if err == nil {
 				assert.Equal(t, tc.wantStat, stat)
+			}
+		})
+	}
+}
+
+func TestInserter_Exec(t *testing.T) {
+
+	mockDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+
+	defer func(mockDB *sql.DB) {
+		_ = mockDB.Close()
+	}(mockDB)
+
+	db, err := OpenDB(mockDB)
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name         string
+		inserter     *Inserter[inserterBuildArg]
+		wantErr      error
+		rowsAffected int64
+	}{
+		{
+			name: "invalid column",
+			inserter: func() *Inserter[inserterBuildArg] {
+				return NewInserter[inserterBuildArg](db).Row(&inserterBuildArg{}).ColFd("invalid")
+			}(),
+			wantErr: errs.InvalidColumnFdErr("invalid"),
+		}, {
+			name: "db error",
+			inserter: func() *Inserter[inserterBuildArg] {
+				mock.ExpectExec("INSERT INTO .*").
+					WillReturnError(errors.New("mock db error"))
+
+				return NewInserter[inserterBuildArg](db).Row(&inserterBuildArg{})
+			}(),
+			wantErr: errors.New("mock db error"),
+		}, {
+			name: "normal",
+			inserter: func() *Inserter[inserterBuildArg] {
+				mock.ExpectExec("INSERT INTO .*").
+					WillReturnResult(driver.RowsAffected(1))
+
+				return NewInserter[inserterBuildArg](db).Row(&inserterBuildArg{})
+			}(),
+			rowsAffected: int64(1),
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			res := tc.inserter.Exec(context.Background())
+			assert.Equal(t, tc.wantErr, res.err)
+
+			if res.err == nil {
+				assert.Equal(t, tc.rowsAffected, res.RowsAffected())
 			}
 		})
 	}

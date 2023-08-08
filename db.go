@@ -41,6 +41,7 @@ func OpenDB(sqlDB *sql.DB, opts ...DBOpt) (*DB, error) {
 	db := &DB{
 		registry: model.NewRegistry(),
 		creator:  val.NewUnsafeValWriter,
+		dialect:  StandardSQL,
 		sqlDB:    sqlDB,
 	}
 
