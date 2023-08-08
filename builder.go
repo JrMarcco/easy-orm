@@ -101,15 +101,15 @@ func (b *builder) buildExpr(expr Expression) error {
 			if _, rok := exprTyp.right.(Predicate); rok {
 				b.sb.WriteByte('(')
 			}
-		}
 
-		// 递归右子表达式
-		if err := b.buildExpr(exprTyp.right); err != nil {
-			return err
-		}
+			// 递归右子表达式
+			if err := b.buildExpr(exprTyp.right); err != nil {
+				return err
+			}
 
-		if _, rok := exprTyp.right.(Predicate); rok {
-			b.sb.WriteByte(')')
+			if _, rok := exprTyp.right.(Predicate); rok {
+				b.sb.WriteByte(')')
+			}
 		}
 	default:
 		return errs.UnsupportedExprErr

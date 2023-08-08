@@ -245,7 +245,8 @@ func TestSelector_Build(t *testing.T) {
 				Col("Id").Gt(1),
 			),
 			wantStat: &Statement{
-				SQL: "SELECT * FROM `selector_build_arg` LIMIT 1 OFFSET 10;",
+				SQL:  "SELECT * FROM `selector_build_arg` GROUP BY `id` HAVING `id` > ?;",
+				Args: []any{1},
 			},
 		}, {
 			name: "having with group by",
