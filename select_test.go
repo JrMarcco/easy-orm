@@ -219,6 +219,46 @@ func TestSelector_Build(t *testing.T) {
 			wantStat: &Statement{
 				SQL: "SELECT * FROM `selector_build_arg` LIMIT 1 OFFSET 10;",
 			},
+		}, {
+			name:    "single column group by",
+			builder: NewSelector[selectorBuildArg](db).GroupBy(Col("Age")),
+			wantStat: &Statement{
+				SQL: "SELECT * FROM `selector_build_arg` GROUP BY `age`;",
+			},
+		}, {
+			name: "multi column group by",
+			builder: NewSelector[selectorBuildArg](db).GroupBy(
+				Col("Age"), Col("FirstName"),
+			),
+			wantStat: &Statement{
+				SQL: "SELECT * FROM `selector_build_arg` GROUP BY `age`,`first_name`;",
+			},
+		}, {
+			name: "having without group by",
+			builder: NewSelector[selectorBuildArg](db).Having(
+				Col("Id").Gt(1),
+			),
+			wantErr: errs.HavingWithoutGroupByErr,
+		}, {
+			name: "single having",
+			builder: NewSelector[selectorBuildArg](db).GroupBy(Col("Id")).Having(
+				Col("Id").Gt(1),
+			),
+			wantStat: &Statement{
+				SQL: "SELECT * FROM `selector_build_arg` LIMIT 1 OFFSET 10;",
+			},
+		}, {
+			name: "having with group by",
+			builder: NewSelector[selectorBuildArg](db).GroupBy(
+				Col("Age"), Col("LastName"),
+			).Having(
+				Col("Age").Gt(18), Col("LastName").Eq("jrmarcco"),
+			),
+			wantStat: &Statement{
+				SQL: "SELECT * FROM `selector_build_arg` GROUP BY `age`,`last_name` " +
+					"HAVING (`age` > ?) AND (`last_name` = ?);",
+				Args: []any{18, "jrmarcco"},
+			},
 		},
 	}
 

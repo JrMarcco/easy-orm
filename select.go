@@ -3,6 +3,7 @@ package orm
 import (
 	"context"
 	"database/sql"
+	"github.com/jrmarcco/easy-orm/internal/errs"
 	"strconv"
 )
 
@@ -14,11 +15,13 @@ type selectable interface {
 
 type Selector[T any] struct {
 	builder
-	sas    []selectable
-	conds  []condition
-	limit  int64
-	offset int64
-	db     *DB
+	sas         []selectable
+	whereConds  []condition
+	havingConds []condition
+	groupByCols []Column
+	limit       int64
+	offset      int64
+	db          *DB
 }
 
 var _ Querier[any] = new(Selector[any])
@@ -43,22 +46,30 @@ func (s *Selector[T]) From(tbName string) *Selector[T] {
 }
 
 func (s *Selector[T]) Where(predicates ...Predicate) *Selector[T] {
-	if s.conds == nil {
-		s.conds = make([]condition, 0, 2)
+	if s.whereConds == nil {
+		s.whereConds = make([]condition, 0, 2)
 	}
 
 	if len(predicates) > 0 {
-		s.conds = append(s.conds, newCond(condTypWhere, predicates))
+		s.whereConds = append(s.whereConds, newCond(condTypWhere, predicates))
 	}
 	return s
 }
 
-func (s *Selector[T]) GroupBy() *Selector[T] {
-	panic("implement me")
+func (s *Selector[T]) GroupBy(groupByCols ...Column) *Selector[T] {
+	s.groupByCols = groupByCols
+	return s
 }
 
-func (s *Selector[T]) Having() *Selector[T] {
-	panic("implement me")
+func (s *Selector[T]) Having(predicates ...Predicate) *Selector[T] {
+	if s.havingConds == nil {
+		s.havingConds = make([]condition, 0, 2)
+	}
+
+	if len(predicates) > 0 {
+		s.havingConds = append(s.havingConds, newCond(condTypHaving, predicates))
+	}
+	return s
 }
 
 func (s *Selector[T]) Limit(limit int64) *Selector[T] {
@@ -98,13 +109,34 @@ func (s *Selector[T]) Build() (*Statement, error) {
 	s.sb.WriteString(" FROM ")
 	s.writeTbName()
 
-	if len(s.conds) > 0 {
-		for _, cond := range s.conds {
-			s.sb.WriteString(string(cond.typ))
+	if len(s.whereConds) != 0 {
+		if err = s.buildConds(s.whereConds); err != nil {
+			return nil, err
+		}
+	}
 
-			if err := s.buildExpr(cond.rootExpr); err != nil {
+	if len(s.groupByCols) != 0 {
+		s.sb.WriteString(" GROUP BY ")
+		for idx, col := range s.groupByCols {
+
+			if idx > 0 {
+				s.sb.WriteByte(',')
+			}
+
+			if err = s.writeField(col.fdName); err != nil {
 				return nil, err
 			}
+		}
+	}
+
+	if len(s.havingConds) != 0 {
+		// 校验是否有 group by
+		if len(s.groupByCols) == 0 {
+			return nil, errs.HavingWithoutGroupByErr
+		}
+
+		if err = s.buildConds(s.havingConds); err != nil {
+			return nil, err
 		}
 	}
 
@@ -126,9 +158,21 @@ func (s *Selector[T]) Build() (*Statement, error) {
 	}, nil
 }
 
+func (s *Selector[T]) buildConds(conds []condition) error {
+	for _, cond := range conds {
+		s.sb.WriteString(string(cond.typ))
+
+		if err := s.buildExpr(cond.rootExpr); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
 
-	rows, err := s.getRows(ctx)
+	rows, err := s.Limit(1).getRows(ctx)
 	if err != nil {
 		return nil, err
 	}
