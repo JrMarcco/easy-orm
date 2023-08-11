@@ -21,17 +21,19 @@ type Selector[T any] struct {
 	groupByCols []Column
 	limit       int64
 	offset      int64
-	db          *DB
+
+	session Session
 }
 
 var _ Querier[any] = new(Selector[any])
 
-func NewSelector[T any](db *DB) *Selector[T] {
+func NewSelector[T any](session Session) *Selector[T] {
+
 	return &Selector[T]{
-		builder: newBuilder(db.dialect),
+		builder: newBuilder(session),
 		limit:   0,
 		offset:  -1,
-		db:      db,
+		session: session,
 	}
 }
 
@@ -85,7 +87,7 @@ func (s *Selector[T]) Offset(offset int64) *Selector[T] {
 func (s *Selector[T]) Build() (*Statement, error) {
 
 	var err error
-	if s.model, err = s.db.registry.Get(new(T)); err != nil {
+	if s.model, err = s.session.getCore().registry.Get(new(T)); err != nil {
 		return nil, err
 	}
 
@@ -183,7 +185,7 @@ func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
 
 	res := new(T)
 
-	writer := s.db.creator(s.model, res)
+	writer := s.session.getCore().creator(s.model, res)
 	if err = writer.WriteCols(rows); err != nil {
 		return nil, err
 	}
@@ -200,7 +202,7 @@ func (s *Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {
 	res := make([]*T, 0, 8)
 	for rows.Next() {
 		val := new(T)
-		writer := s.db.creator(s.model, val)
+		writer := s.session.getCore().creator(s.model, val)
 		if err := writer.WriteCols(rows); err != nil {
 			return nil, err
 		}
@@ -216,7 +218,5 @@ func (s *Selector[T]) getRows(ctx context.Context) (*sql.Rows, error) {
 		return nil, err
 	}
 
-	sqlDB := s.db.sqlDB
-
-	return sqlDB.QueryContext(ctx, stat.SQL, stat.Args...)
+	return s.session.queryContext(ctx, stat.SQL, stat.Args...)
 }

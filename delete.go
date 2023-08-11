@@ -5,13 +5,14 @@ import "strings"
 type Deleter[T any] struct {
 	builder
 	conds []condition
-	db    *DB
+
+	session Session
 }
 
-func NewDeleter[T any](db *DB) *Deleter[T] {
+func NewDeleter[T any](session Session) *Deleter[T] {
 	return &Deleter[T]{
-		builder: newBuilder(db.dialect),
-		db:      db,
+		builder: newBuilder(session),
+		session: session,
 	}
 }
 
@@ -34,7 +35,7 @@ func (d *Deleter[T]) Where(predicates ...Predicate) *Deleter[T] {
 func (d *Deleter[T]) Build() (*Statement, error) {
 
 	var err error
-	if d.model, err = d.db.registry.Get(new(T)); err != nil {
+	if d.model, err = d.session.getCore().registry.Get(new(T)); err != nil {
 		return nil, err
 	}
 

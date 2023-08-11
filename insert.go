@@ -10,14 +10,15 @@ type Inserter[T any] struct {
 	builder
 	colFds     []string
 	rows       []*T
-	db         *DB
 	onConflict *OnConflict
+
+	session Session
 }
 
-func NewInserter[T any](db *DB) *Inserter[T] {
+func NewInserter[T any](session Session) *Inserter[T] {
 	return &Inserter[T]{
-		builder: newBuilder(db.dialect),
-		db:      db,
+		builder: newBuilder(session),
+		session: session,
 	}
 }
 
@@ -50,7 +51,7 @@ func (i *Inserter[T]) Build() (*Statement, error) {
 	}
 
 	var err error
-	if i.model, err = i.db.registry.Get(new(T)); err != nil {
+	if i.model, err = i.session.getCore().registry.Get(new(T)); err != nil {
 		return nil, err
 	}
 
@@ -113,7 +114,7 @@ func (i *Inserter[T]) buildInsertCol() error {
 
 		i.sb.WriteByte('(')
 
-		valCreator := i.db.creator(i.model, row)
+		valCreator := i.session.getCore().creator(i.model, row)
 		for fdIdx, fd := range seqFds {
 			if fdIdx > 0 {
 				i.sb.WriteByte(',')
@@ -139,7 +140,7 @@ func (i *Inserter[T]) Exec(ctx context.Context) Result {
 		return Result{err: err}
 	}
 
-	res, err := i.db.sqlDB.ExecContext(ctx, stat.SQL, stat.Args...)
+	res, err := i.session.execContext(ctx, stat.SQL, stat.Args...)
 	if err != nil {
 		return Result{err: err}
 	}
