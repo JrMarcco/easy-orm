@@ -1,6 +1,9 @@
 package orm
 
-import "strings"
+import (
+	"context"
+	"strings"
+)
 
 type Deleter[T any] struct {
 	builder
@@ -8,6 +11,8 @@ type Deleter[T any] struct {
 
 	session Session
 }
+
+var _ Executor = &Deleter[any]{}
 
 func NewDeleter[T any](session Session) *Deleter[T] {
 	return &Deleter[T]{
@@ -73,4 +78,20 @@ func (d *Deleter[T]) Build() (*Statement, error) {
 		SQL:  d.sb.String(),
 		Args: d.args,
 	}, nil
+}
+
+func (d *Deleter[T]) Exec(ctx context.Context) Result {
+	stat, err := d.Build()
+	if err != nil {
+		return Result{err: err}
+	}
+
+	res, err := d.session.execContext(ctx, stat.SQL, stat.Args...)
+	if err != nil {
+		return Result{err: err}
+	}
+
+	return Result{
+		res: res,
+	}
 }

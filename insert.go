@@ -15,6 +15,8 @@ type Inserter[T any] struct {
 	session Session
 }
 
+var _ Executor = &Inserter[any]{}
+
 func NewInserter[T any](session Session) *Inserter[T] {
 	return &Inserter[T]{
 		builder: newBuilder(session),
