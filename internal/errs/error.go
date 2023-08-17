@@ -35,3 +35,10 @@ func EmptyTagKeyErr(content string) error {
 func EmptyTagValErr(content string) error {
 	return fmt.Errorf("invalid tag content '%s', val is empty", content)
 }
+
+func RollbackErr(bizErr error, rollbackErr error, bizPanicked bool) error {
+	return fmt.Errorf(
+		"fial to rollback, business error: %w, rollback error: %s, business panicked: %t",
+		bizErr, rollbackErr, bizPanicked,
+	)
+}

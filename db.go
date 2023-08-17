@@ -3,6 +3,7 @@ package orm
 import (
 	"context"
 	"database/sql"
+	"github.com/jrmarcco/easy-orm/internal/errs"
 	"github.com/jrmarcco/easy-orm/internal/val"
 	"github.com/jrmarcco/easy-orm/model"
 )
@@ -77,4 +78,29 @@ func (d *DB) beginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 		Core:  d.Core,
 		sqlTx: sqlTx,
 	}, nil
+}
+
+func (d *DB) DoTransaction(ctx context.Context, bizFunc func(ctx context.Context, tx *Tx), opts *sql.TxOptions) (err error) {
+
+	tx, err := d.beginTx(ctx, opts)
+	if err != nil {
+		return err
+	}
+
+	panicked := true
+	defer func() {
+		// do rollback
+		if panicked || err != nil {
+			rollbackErr := tx.Rollback()
+			err = errs.RollbackErr(err, rollbackErr, panicked)
+			return
+		}
+		// do commit
+		err = tx.Commit()
+	}()
+
+	bizFunc(ctx, tx)
+	panicked = false
+
+	return err
 }

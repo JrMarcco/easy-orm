@@ -3,6 +3,7 @@ package orm
 import (
 	"context"
 	"database/sql"
+	"errors"
 )
 
 type Tx struct {
@@ -29,4 +30,13 @@ func (t *Tx) Commit() error {
 
 func (t *Tx) Rollback() error {
 	return t.sqlTx.Rollback()
+}
+
+func (t *Tx) RollbackIfNotCommit() error {
+	err := t.sqlTx.Rollback()
+	if !errors.Is(err, sql.ErrTxDone) {
+		return err
+	}
+
+	return nil
 }
