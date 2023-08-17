@@ -9,4 +9,7 @@ type Core struct {
 	registry model.Registry
 	creator  val.Creator
 	dialect  Dialect
+
+	// AOP
+	mdls []Middleware
 }

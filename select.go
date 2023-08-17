@@ -172,46 +172,6 @@ func (s *Selector[T]) buildConds(conds []condition) error {
 	return nil
 }
 
-func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
-
-	rows, err := s.Limit(1).getRows(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if !rows.Next() {
-		return nil, sql.ErrNoRows
-	}
-
-	res := new(T)
-
-	writer := s.session.getCore().creator(s.model, res)
-	if err = writer.WriteCols(rows); err != nil {
-		return nil, err
-	}
-
-	return res, nil
-}
-
-func (s *Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {
-	rows, err := s.getRows(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	res := make([]*T, 0, 8)
-	for rows.Next() {
-		val := new(T)
-		writer := s.session.getCore().creator(s.model, val)
-		if err := writer.WriteCols(rows); err != nil {
-			return nil, err
-		}
-
-		res = append(res, val)
-	}
-	return res, nil
-}
-
 func (s *Selector[T]) getRows(ctx context.Context) (*sql.Rows, error) {
 	stat, err := s.Build()
 	if err != nil {
@@ -219,4 +179,84 @@ func (s *Selector[T]) getRows(ctx context.Context) (*sql.Rows, error) {
 	}
 
 	return s.session.queryContext(ctx, stat.SQL, stat.Args...)
+}
+
+var _ HandleFunc = (&Selector[any]{}).handle
+
+func (s *Selector[T]) handle(ctx context.Context, _ *StatContext) *StatResult {
+	rows, err := s.Limit(1).getRows(ctx)
+	if err != nil {
+		return &StatResult{Err: err}
+	}
+
+	if !rows.Next() {
+		return &StatResult{Err: err}
+	}
+
+	res := new(T)
+
+	writer := s.session.getCore().creator(s.model, res)
+	if err = writer.WriteCols(rows); err != nil {
+		return &StatResult{Err: err}
+	}
+
+	return &StatResult{Res: res}
+}
+
+func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
+	root := s.handle
+	core := s.session.getCore()
+	for i := len(core.mdls) - 1; i >= 0; i-- {
+		root = core.mdls[i](root)
+	}
+
+	sr := root(ctx, &StatContext{
+		Typ: ScTypSelect,
+		Sb:  s,
+	})
+
+	if sr.Res != nil {
+		return sr.Res.(*T), nil
+	}
+	return nil, sr.Err
+}
+
+var _ HandleFunc = (&Selector[any]{}).handleMulti
+
+func (s *Selector[T]) handleMulti(ctx context.Context, _ *StatContext) *StatResult {
+	rows, err := s.getRows(ctx)
+	if err != nil {
+		return &StatResult{Err: err}
+	}
+
+	res := make([]*T, 0, 8)
+	for rows.Next() {
+		val := new(T)
+		writer := s.session.getCore().creator(s.model, val)
+		if err := writer.WriteCols(rows); err != nil {
+			return &StatResult{Err: err}
+		}
+
+		res = append(res, val)
+	}
+	return &StatResult{Res: res}
+}
+
+func (s *Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {
+	root := s.handleMulti
+	core := s.session.getCore()
+	for i := len(core.mdls) - 1; i >= 0; i-- {
+		root = core.mdls[i](root)
+	}
+
+	sr := root(ctx, &StatContext{
+		Typ: ScTypSelect,
+		Sb:  s,
+	})
+
+	if sr.Res != nil {
+		return sr.Res.([]*T), nil
+	}
+
+	return nil, sr.Err
 }

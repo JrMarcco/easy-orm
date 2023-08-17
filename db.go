@@ -27,6 +27,12 @@ func DBWithDialect(dialect Dialect) DBOpt {
 	}
 }
 
+func DBWithMdls(mdls ...Middleware) DBOpt {
+	return func(db *DB) {
+		db.mdls = mdls
+	}
+}
+
 func Open(driver string, dsn string, opts ...DBOpt) (*DB, error) {
 	sqlDB, err := sql.Open(driver, dsn)
 	if err != nil {
