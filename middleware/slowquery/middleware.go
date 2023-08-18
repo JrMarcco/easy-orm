@@ -17,7 +17,7 @@ func NewBuilder(threshold time.Duration) *MiddlewareBuilder {
 	return &MiddlewareBuilder{
 		threshold: threshold,
 		logFunc: func(stat *orm.Statement) {
-			fmt.Printf("slow query sql: %s\n", stat.SQL)
+			fmt.Printf("slow query: %s\n", stat.SQL)
 		},
 	}
 }
