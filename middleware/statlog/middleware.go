@@ -36,7 +36,7 @@ func (m *MiddlewareBuilder) Build() orm.Middleware {
 	return func(next orm.HandleFunc) orm.HandleFunc {
 		return func(ctx context.Context, sc *orm.StatContext) *orm.StatResult {
 
-			stat, err := sc.Sb.Build()
+			stat, err := sc.Builder.Build()
 			if err != nil {
 				return &orm.StatResult{Err: err}
 			}

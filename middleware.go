@@ -10,8 +10,8 @@ var (
 )
 
 type StatContext struct {
-	Typ string
-	Sb  StatBuilder
+	Typ     string
+	Builder StatBuilder
 }
 
 type StatResult struct {

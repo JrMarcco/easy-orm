@@ -36,7 +36,7 @@ func (m *MiddlewareBuilder) Build() orm.Middleware {
 				}
 
 				// 慢查询
-				if stat, err := sc.Sb.Build(); err == nil {
+				if stat, err := sc.Builder.Build(); err == nil {
 					m.logFunc(stat)
 				}
 			}()

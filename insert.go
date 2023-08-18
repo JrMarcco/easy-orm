@@ -162,8 +162,8 @@ func (i *Inserter[T]) Exec(ctx context.Context) Result {
 	}
 
 	sr := root(ctx, &StatContext{
-		Typ: ScTypInsert,
-		Sb:  i,
+		Typ:     ScTypInsert,
+		Builder: i,
 	})
 
 	if sr.Res != nil {

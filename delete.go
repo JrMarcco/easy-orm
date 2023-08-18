@@ -105,8 +105,8 @@ func (d *Deleter[T]) Exec(ctx context.Context) Result {
 	}
 
 	sr := root(ctx, &StatContext{
-		Typ: ScTypDelete,
-		Sb:  d,
+		Typ:     ScTypDelete,
+		Builder: d,
 	})
 
 	if sr.Res != nil {

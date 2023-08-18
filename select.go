@@ -211,8 +211,8 @@ func (s *Selector[T]) Get(ctx context.Context) (*T, error) {
 	}
 
 	sr := root(ctx, &StatContext{
-		Typ: ScTypSelect,
-		Sb:  s,
+		Typ:     ScTypSelect,
+		Builder: s,
 	})
 
 	if sr.Res != nil {
@@ -250,8 +250,8 @@ func (s *Selector[T]) GetMulti(ctx context.Context) ([]*T, error) {
 	}
 
 	sr := root(ctx, &StatContext{
-		Typ: ScTypSelect,
-		Sb:  s,
+		Typ:     ScTypSelect,
+		Builder: s,
 	})
 
 	if sr.Res != nil {
