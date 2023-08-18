@@ -32,10 +32,10 @@ func TestSelector_Get(t *testing.T) {
 		_ = mockDB.Close()
 	}(mockDB)
 
-	logMdlBuilder := statlog.NewBuilder(statlog.BuilderWithLogFunc(func(stat string, args []any) {
-		log.Printf("statement: %s, args: %v \n", stat, args)
-		globalStat = stat
-		globalArgs = args
+	logMdlBuilder := statlog.NewBuilder(statlog.BuilderWithLogFunc(func(stat *orm.Statement) {
+		log.Printf("statement: %s, args: %v \n", stat.SQL, stat.Args)
+		globalStat = stat.SQL
+		globalArgs = stat.Args
 	}))
 
 	db, err := orm.OpenDB(mockDB, orm.DBWithDialect(orm.MySqlDialect), orm.DBWithMdls(logMdlBuilder.Build()))
@@ -102,10 +102,10 @@ func TestSelector_GetMulti(t *testing.T) {
 		_ = mockDB.Close()
 	}(mockDB)
 
-	logMdlBuilder := statlog.NewBuilder(statlog.BuilderWithLogFunc(func(stat string, args []any) {
-		log.Printf("statement: %s, args: %v \n", stat, args)
-		globalStat = stat
-		globalArgs = args
+	logMdlBuilder := statlog.NewBuilder(statlog.BuilderWithLogFunc(func(stat *orm.Statement) {
+		log.Printf("statement: %s, args: %v \n", stat.SQL, stat.Args)
+		globalStat = stat.SQL
+		globalArgs = stat.Args
 	}))
 
 	db, err := orm.OpenDB(mockDB, orm.DBWithDialect(orm.MySqlDialect), orm.DBWithMdls(logMdlBuilder.Build()))
