@@ -2,8 +2,8 @@ package statlog
 
 import (
 	"context"
-	"fmt"
 	orm "github.com/jrmarcco/easy-orm"
+	"log"
 )
 
 type MiddlewareBuilder struct {
@@ -21,7 +21,7 @@ func BuilderWithLogFunc(logFunc func(stat string, args []any)) MdlOpt {
 func NewBuilder(opts ...MdlOpt) *MiddlewareBuilder {
 	builder := &MiddlewareBuilder{
 		logFunc: func(stat string, args []any) {
-			fmt.Printf("statement: %s, args: %v \n", stat, args)
+			log.Printf("statement: %s, args: %v \n", stat, args)
 		},
 	}
 

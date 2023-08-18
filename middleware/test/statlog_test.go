@@ -10,6 +10,7 @@ import (
 	"github.com/jrmarcco/easy-orm/middleware/statlog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"log"
 	"testing"
 )
 
@@ -32,6 +33,7 @@ func TestSelector_Get(t *testing.T) {
 	}(mockDB)
 
 	logMdlBuilder := statlog.NewBuilder(statlog.BuilderWithLogFunc(func(stat string, args []any) {
+		log.Printf("statement: %s, args: %v \n", stat, args)
 		globalStat = stat
 		globalArgs = args
 	}))
@@ -101,6 +103,7 @@ func TestSelector_GetMulti(t *testing.T) {
 	}(mockDB)
 
 	logMdlBuilder := statlog.NewBuilder(statlog.BuilderWithLogFunc(func(stat string, args []any) {
+		log.Printf("statement: %s, args: %v \n", stat, args)
 		globalStat = stat
 		globalArgs = args
 	}))
