@@ -14,6 +14,7 @@ var (
 	EmptyColNameErr          = errors.New("empty column name")
 	EmptyInsertRowErr        = errors.New("insert row can not be empty")
 	HavingWithoutGroupByErr  = errors.New("having statement can not without group by statement")
+	UnsafeDeleteErr          = errors.New("unsafe operation, delete without where")
 )
 
 func InvalidColumnErr(fd string) error {

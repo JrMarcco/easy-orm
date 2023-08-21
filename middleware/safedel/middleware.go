@@ -2,8 +2,8 @@ package safedel
 
 import (
 	"context"
-	"errors"
 	orm "github.com/jrmarcco/easy-orm"
+	"github.com/jrmarcco/easy-orm/internal/errs"
 	"strings"
 )
 
@@ -27,9 +27,9 @@ func (m *MiddlewareBuilder) Build() orm.Middleware {
 				return &orm.StatResult{Err: err}
 			}
 
-			if !strings.Contains(stat.SQL, "WHERE") {
+			if !strings.Contains(stat.SQL, " WHERE ") {
 				return &orm.StatResult{
-					Err: errors.New("unsafe operation, delete without where"),
+					Err: errs.UnsafeDeleteErr,
 				}
 			}
 

@@ -1,6 +1,9 @@
 package orm
 
-import "context"
+import (
+	"context"
+	"github.com/jrmarcco/easy-orm/model"
+)
 
 var (
 	ScTypSelect = "SELECT"
@@ -12,6 +15,7 @@ var (
 type StatContext struct {
 	Typ     string
 	Builder StatBuilder
+	Model   *model.Model
 }
 
 type StatResult struct {
