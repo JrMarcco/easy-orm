@@ -39,7 +39,7 @@ func (m *MiddlewareBuilder) Build() orm.Middleware {
 		return func(ctx context.Context, sc *orm.StatContext) *orm.StatResult {
 
 			tb := sc.Model.Tb
-			extCtx, span := m.tracer.Start(ctx, sc.Typ+"-"+tb, trace.WithAttributes())
+			extCtx, span := m.tracer.Start(ctx, sc.Typ+":"+tb, trace.WithAttributes())
 			defer span.End()
 
 			span.SetAttributes(attribute.String("component", "orm"))
