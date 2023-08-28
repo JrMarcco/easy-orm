@@ -190,7 +190,7 @@ func (s *Selector[T]) handle(ctx context.Context, _ *StatContext) *StatResult {
 	}
 
 	if !rows.Next() {
-		return &StatResult{Err: err}
+		return &StatResult{Err: errs.NoEligibleRowsErr}
 	}
 
 	res := new(T)

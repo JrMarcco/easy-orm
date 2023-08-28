@@ -3,9 +3,13 @@ package orm
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
+	"errors"
 	"github.com/jrmarcco/easy-orm/internal/errs"
 	"github.com/jrmarcco/easy-orm/internal/val"
 	"github.com/jrmarcco/easy-orm/model"
+	"log"
+	"time"
 )
 
 type DB struct {
@@ -64,6 +68,24 @@ func OpenDB(sqlDB *sql.DB, opts ...DBOpt) (*DB, error) {
 
 func (d *DB) getCore() *Core {
 	return d.Core
+}
+
+func (d *DB) Wait(timeout time.Duration) error {
+
+	if timeout > 0 {
+		_, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+	}
+
+	err := d.sqlDB.Ping()
+	for errors.Is(err, driver.ErrBadConn) {
+		log.Println("waiting for db start ...")
+		err = d.sqlDB.Ping()
+
+		time.Sleep(time.Second)
+	}
+
+	return err
 }
 
 func (d *DB) queryContext(ctx context.Context, sql string, args ...any) (*sql.Rows, error) {

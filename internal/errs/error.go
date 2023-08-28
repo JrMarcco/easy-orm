@@ -13,6 +13,7 @@ var (
 	EmptyTbNameErr           = errors.New("empty table name")
 	EmptyColNameErr          = errors.New("empty column name")
 	EmptyInsertRowErr        = errors.New("insert row can not be empty")
+	NoEligibleRowsErr        = errors.New("no eligible rows")
 	HavingWithoutGroupByErr  = errors.New("having statement can not without group by statement")
 	UnsafeDeleteErr          = errors.New("unsafe operation, delete without where")
 )
