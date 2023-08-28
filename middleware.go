@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	ScTypRaw    = "RAW"
 	ScTypSelect = "SELECT"
 	ScTypDelete = "DELETE"
 	ScTypUpdate = "UPDATE"
