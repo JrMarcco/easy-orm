@@ -2,7 +2,6 @@ package orm
 
 import (
 	"context"
-	"database/sql"
 	"strings"
 )
 
@@ -81,39 +80,9 @@ func (d *Deleter[T]) Build() (*Statement, error) {
 	}, nil
 }
 
-func (d *Deleter[T]) handle(ctx context.Context, _ *StatContext) *StatResult {
-	stat, err := d.Build()
-
-	if err != nil {
-		return &StatResult{Err: err}
-	}
-
-	res, err := d.session.execContext(ctx, stat.SQL, stat.Args...)
-	if err != nil {
-		return &StatResult{Err: err}
-	}
-
-	return &StatResult{Res: res}
-}
-
 func (d *Deleter[T]) Exec(ctx context.Context) Result {
-
-	root := d.handle
-	core := d.session.getCore()
-	for i := len(core.mdls) - 1; i >= 0; i-- {
-		root = core.mdls[i](root)
-	}
-
-	sr := root(ctx, &StatContext{
+	return exec(ctx, d.session, &StatContext{
 		Typ:     ScTypDelete,
 		Builder: d,
 	})
-
-	if sr.Res != nil {
-		return Result{
-			res: sr.Res.(sql.Result),
-			err: sr.Err,
-		}
-	}
-	return Result{err: sr.Err}
 }

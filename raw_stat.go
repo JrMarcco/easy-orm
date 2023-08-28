@@ -46,6 +46,8 @@ func (r *RawStat[T]) GetMulti(ctx context.Context) ([]*T, error) {
 }
 
 func (r *RawStat[T]) Exec(ctx context.Context) Result {
-	//TODO implement me
-	panic("implement me")
+	return exec(ctx, r.session, &StatContext{
+		Typ:     ScTypRaw,
+		Builder: r,
+	})
 }

@@ -3,6 +3,7 @@ package orm
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -193,6 +194,64 @@ func TestRawStat_GetMulti(t *testing.T) {
 
 			if err == nil {
 				assert.Equal(t, tc.wantRes, res)
+			}
+		})
+	}
+}
+
+func TestRawStat_Exec(t *testing.T) {
+
+	mockDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+
+	defer func(mockDB *sql.DB) {
+		_ = mockDB.Close()
+	}(mockDB)
+
+	db, err := OpenDB(mockDB)
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name         string
+		rawStat      *RawStat[inserterBuildArg]
+		wantErr      error
+		rowsAffected int64
+	}{
+		{
+			name: "db error",
+			rawStat: func() *RawStat[inserterBuildArg] {
+				mock.ExpectExec("INSERT INTO .*").
+					WillReturnError(errors.New("mock db error"))
+
+				return NewRawStat[inserterBuildArg](
+					db,
+					`INSERT INTO "inserter_build_arg"`,
+				)
+			}(),
+			wantErr: errors.New("mock db error"),
+		}, {
+			name: "normal",
+			rawStat: func() *RawStat[inserterBuildArg] {
+				mock.ExpectExec("INSERT INTO .*").
+					WillReturnResult(driver.RowsAffected(1))
+
+				return NewRawStat[inserterBuildArg](
+					db,
+					`INSERT INTO "inserter_build_arg"("id","name","nick_name","balance") VALUES (?,?,?,?) `,
+					uint64(1), "jrmarcco", &sql.NullString{Valid: true, String: "foo bar"}, int64(100),
+				)
+			}(),
+			rowsAffected: int64(1),
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			res := tc.rawStat.Exec(context.Background())
+			assert.Equal(t, tc.wantErr, res.err)
+
+			if res.err == nil {
+				assert.Equal(t, tc.rowsAffected, res.RowsAffected())
 			}
 		})
 	}

@@ -2,7 +2,6 @@ package orm
 
 import (
 	"context"
-	"database/sql"
 	"github.com/jrmarcco/easy-orm/internal/errs"
 	"github.com/jrmarcco/easy-orm/model"
 )
@@ -136,44 +135,11 @@ func (i *Inserter[T]) buildInsertCol() error {
 	return nil
 }
 
-var _ HandleFunc = (&Inserter[any]{}).handle
-
-func (i *Inserter[T]) handle(ctx context.Context, _ *StatContext) *StatResult {
-	stat, err := i.Build()
-
-	if err != nil {
-		return &StatResult{Err: err}
-	}
-
-	res, err := i.session.execContext(ctx, stat.SQL, stat.Args...)
-	if err != nil {
-		return &StatResult{Err: err}
-	}
-
-	return &StatResult{Res: res}
-}
-
 func (i *Inserter[T]) Exec(ctx context.Context) Result {
-
-	root := i.handle
-	core := i.session.getCore()
-	for idx := len(core.mdls) - 1; idx >= 0; idx-- {
-		root = core.mdls[idx](root)
-	}
-
-	sr := root(ctx, &StatContext{
+	return exec(ctx, i.session, &StatContext{
 		Typ:     ScTypInsert,
 		Builder: i,
 	})
-
-	if sr.Res != nil {
-		return Result{
-			res: sr.Res.(sql.Result),
-			err: sr.Err,
-		}
-	}
-
-	return Result{err: sr.Err}
 }
 
 type OnConflictBuilder[T any] struct {
