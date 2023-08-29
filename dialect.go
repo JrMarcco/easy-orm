@@ -3,8 +3,9 @@ package orm
 import "github.com/jrmarcco/easy-orm/internal/errs"
 
 var (
-	StandardSQL  = standardSQL{}
-	MySqlDialect = mysql{}
+	StandardSQL     = standardSQL{}
+	MySqlDialect    = mysql{}
+	PostgresDialect = postgres{}
 )
 
 type Dialect interface {
@@ -108,4 +109,8 @@ func (m mysql) onConflict(b *builder, onConflict *OnConflict) error {
 		}
 	}
 	return nil
+}
+
+type postgres struct {
+	standardSQL
 }
