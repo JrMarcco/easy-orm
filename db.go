@@ -72,10 +72,8 @@ func (d *DB) getCore() *Core {
 
 func (d *DB) Wait(timeout time.Duration) error {
 
-	if timeout > 0 {
-		_, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-	}
+	_, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	err := d.sqlDB.Ping()
 	for errors.Is(err, driver.ErrBadConn) {

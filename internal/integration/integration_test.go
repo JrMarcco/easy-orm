@@ -22,7 +22,7 @@ func (s *Suite) SetupSuite() {
 	db, err := orm.Open(s.driver, s.dsn, orm.DBWithDialect(s.dialect))
 	require.NoError(t, err)
 
-	err = db.Wait(time.Minute)
+	err = db.Wait(10 * time.Second)
 	require.NoError(t, err)
 
 	s.db = db
