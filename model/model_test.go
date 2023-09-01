@@ -54,14 +54,14 @@ func TestRegistry_parseModel(t *testing.T) {
 		{
 			name:    "invalid type slice",
 			arg:     []int{},
-			wantErr: errs.InvalidTypeErr,
+			wantErr: errs.ErrInvalidType,
 		}, {
 			name: "multi-level pointer",
 			arg: func() **parseModelArg {
 				arg := &parseModelArg{}
 				return &arg
 			},
-			wantErr: errs.InvalidTypeErr,
+			wantErr: errs.ErrInvalidType,
 		}, {
 			name: "basic struct",
 			arg:  parseModelArg{},
@@ -154,7 +154,7 @@ func TestRegistry_parseModel(t *testing.T) {
 				}
 				return Demo{}
 			}(),
-			wantErr: errs.InvalidTagContentErr("column=user_name=s"),
+			wantErr: errs.ErrInvalidTagContent("column=user_name=s"),
 		}, {
 			name: "empty tag key",
 			arg: func() any {
@@ -163,7 +163,7 @@ func TestRegistry_parseModel(t *testing.T) {
 				}
 				return Demo{}
 			}(),
-			wantErr: errs.EmptyTagKeyErr("  =val"),
+			wantErr: errs.ErrEmptyTagKey("  =val"),
 		}, {
 			name: "empty tag val",
 			arg: func() any {
@@ -172,7 +172,7 @@ func TestRegistry_parseModel(t *testing.T) {
 				}
 				return Demo{}
 			}(),
-			wantErr: errs.EmptyTagValErr("column=  "),
+			wantErr: errs.ErrEmptyTagVal("column=  "),
 		}, {
 			name: "custom name",
 			arg:  &customTbName{},
@@ -292,14 +292,14 @@ func TestRegistry_getModel(t *testing.T) {
 		{
 			name:    "invalid type slice",
 			arg:     []int{},
-			wantErr: errs.InvalidTypeErr,
+			wantErr: errs.ErrInvalidType,
 		}, {
 			name: "multi-level pointer",
 			arg: func() **parseModelArg {
 				arg := &parseModelArg{}
 				return &arg
 			},
-			wantErr: errs.InvalidTypeErr,
+			wantErr: errs.ErrInvalidType,
 		}, {
 			name: "basic struct",
 			arg:  parseModelArg{},
@@ -455,7 +455,7 @@ func TestRegistry_Register(t *testing.T) {
 			opts: []Opt{
 				WithTbName(""),
 			},
-			wantErr: errs.EmptyTbNameErr,
+			wantErr: errs.ErrEmptyTbName,
 		}, {
 			name:   "with single column name opt",
 			entity: parseModelArg{},
@@ -517,14 +517,14 @@ func TestRegistry_Register(t *testing.T) {
 			opts: []Opt{
 				WithColName("Invalid", "column_name"),
 			},
-			wantErr: errs.InvalidColumnFdErr("Invalid"),
+			wantErr: errs.ErrInvalidColumnFd("Invalid"),
 		}, {
 			name:   "with empty column name opt",
 			entity: parseModelArg{},
 			opts: []Opt{
 				WithColName("Name", ""),
 			},
-			wantErr: errs.EmptyColNameErr,
+			wantErr: errs.ErrEmptyColName,
 		},
 	}
 

@@ -70,12 +70,9 @@ func (d *DB) getCore() *Core {
 	return d.Core
 }
 
-func (d *DB) Wait(timeout time.Duration) error {
-
-	_, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
+func (d *DB) Wait() error {
 	err := d.sqlDB.Ping()
+
 	for errors.Is(err, driver.ErrBadConn) {
 		log.Println("waiting for db start ...")
 		err = d.sqlDB.Ping()
@@ -118,7 +115,7 @@ func (d *DB) DoTransaction(ctx context.Context, bizFunc func(ctx context.Context
 		// do rollback
 		if panicked || err != nil {
 			rollbackErr := tx.Rollback()
-			err = errs.RollbackErr(err, rollbackErr, panicked)
+			err = errs.ErrRollback(err, rollbackErr, panicked)
 			return
 		}
 		// do commit

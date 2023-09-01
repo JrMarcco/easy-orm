@@ -25,7 +25,7 @@ func NewUnsafeValWriter(m *model.Model, v any) Value {
 func (u unsafeVal) ReadCol(fnName string) (any, error) {
 	fd, ok := u.m.Fds[fnName]
 	if !ok {
-		return nil, errs.InvalidColumnFdErr(fnName)
+		return nil, errs.ErrInvalidColumnFd(fnName)
 	}
 
 	ptr := unsafe.Pointer(uintptr(u.addr) + fd.Offset)
@@ -47,19 +47,18 @@ func (u unsafeVal) WriteCols(rows *sql.Rows) error {
 	for _, col := range cols {
 		fd, ok := u.m.Cols[col]
 		if !ok {
-			return errs.InvalidColumnErr(col)
+			return errs.ErrInvalidColumn(col)
 		}
 
 		ptr := unsafe.Pointer(uintptr(u.addr) + fd.Offset)
 		if ptr == nil {
-			return errs.InvalidColumnErr(col)
+			return errs.ErrInvalidColumn(col)
 		}
 
 		// 注意这里 val := reflect.NewAt(fd.Type, ptr)
 		// 创建出来的是 fd.fdType 类型的指针。
 		val := reflect.NewAt(fd.Type, ptr)
 		vals = append(vals, val.Interface())
-
 	}
 
 	if err = rows.Scan(vals...); err != nil {

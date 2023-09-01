@@ -4,7 +4,6 @@ import (
 	orm "github.com/jrmarcco/easy-orm"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"time"
 )
 
 type Suite struct {
@@ -22,7 +21,7 @@ func (s *Suite) SetupSuite() {
 	db, err := orm.Open(s.driver, s.dsn, orm.DBWithDialect(s.dialect))
 	require.NoError(t, err)
 
-	err = db.Wait(10 * time.Second)
+	err = db.Wait()
 	require.NoError(t, err)
 
 	s.db = db

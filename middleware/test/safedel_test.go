@@ -34,7 +34,7 @@ func TestDeleter_Exec(t *testing.T) {
 		{
 			name:    "unsafe delete",
 			deleter: orm.NewDeleter[deleterBuildArg](db),
-			wantErr: errs.UnsafeDeleteErr,
+			wantErr: errs.ErrUnsafeDelete,
 		}, {
 			name: "safe delete",
 			deleter: func() *orm.Deleter[deleterBuildArg] {

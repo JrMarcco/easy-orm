@@ -25,7 +25,7 @@ type Opt func(m *Model) error
 func WithTbName(tb string) Opt {
 	return func(m *Model) error {
 		if tb == "" {
-			return errs.EmptyTbNameErr
+			return errs.ErrEmptyTbName
 		}
 
 		m.Tb = tb
@@ -37,13 +37,13 @@ func WithColName(fdName string, colName string) Opt {
 	return func(m *Model) error {
 
 		if colName == "" {
-			return errs.EmptyColNameErr
+			return errs.ErrEmptyColName
 
 		}
 
 		fd, ok := m.Fds[fdName]
 		if !ok {
-			return errs.InvalidColumnFdErr(fdName)
+			return errs.ErrInvalidColumnFd(fdName)
 		}
 
 		delete(m.Cols, fd.ColName)

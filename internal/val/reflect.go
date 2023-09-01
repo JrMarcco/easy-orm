@@ -37,7 +37,7 @@ func (r refVal) WriteCols(rows *sql.Rows) error {
 	for _, col := range cols {
 		fd, ok := r.m.Cols[col]
 		if !ok {
-			return errs.InvalidColumnErr(col)
+			return errs.ErrInvalidColumn(col)
 		}
 
 		// 注意这里 val := reflect.New(fd.Type)
@@ -54,7 +54,7 @@ func (r refVal) WriteCols(rows *sql.Rows) error {
 	for i, col := range cols {
 		fd, ok := r.m.Cols[col]
 		if !ok {
-			return errs.InvalidColumnErr(col)
+			return errs.ErrInvalidColumn(col)
 		}
 
 		r.v.FieldByName(fd.Name).Set(valElems[i])

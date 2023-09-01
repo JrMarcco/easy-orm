@@ -132,7 +132,7 @@ func (s *Selector[T]) Build() (*Statement, error) {
 	if len(s.havingConds) != 0 {
 		// 校验是否有 group by
 		if len(s.groupByCols) == 0 {
-			return nil, errs.HavingWithoutGroupByErr
+			return nil, errs.ErrHavingWithoutGroupBy
 		}
 
 		if err = s.buildConds(s.havingConds); err != nil {

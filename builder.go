@@ -49,7 +49,7 @@ func (b *builder) writeTbName() {
 func (b *builder) writeField(fdName string) error {
 	fd, ok := b.model.Fds[fdName]
 	if !ok {
-		return errs.InvalidColumnFdErr(fdName)
+		return errs.ErrInvalidColumnFd(fdName)
 	}
 	b.writeQuote(fd.ColName)
 
@@ -70,8 +70,8 @@ func (b *builder) buildExpr(expr Expression) error {
 			return err
 		}
 	case ColumnVal:
-		b.sb.WriteByte('?')
 		b.addArg(exprTyp.val)
+		b.dialect.bindArg(b)
 	case RawExpr:
 		b.sb.WriteString(exprTyp.raw)
 		b.addArg(exprTyp.args...)
@@ -112,7 +112,7 @@ func (b *builder) buildExpr(expr Expression) error {
 			}
 		}
 	default:
-		return errs.UnsupportedExprErr
+		return errs.ErrUnsupportedExpr
 	}
 
 	return nil
@@ -132,7 +132,7 @@ func (b *builder) buildSelectable(sa selectable) error {
 		b.sb.WriteString(saType.raw)
 		b.addArg(saType.args...)
 	default:
-		return errs.UnsupportedSelectableErr
+		return errs.ErrUnsupportedSelectable
 	}
 
 	return nil
@@ -154,7 +154,7 @@ func (b *builder) buildCol(col Column) error {
 func (b *builder) buildAggregate(ag Aggregate) error {
 	fd, ok := b.model.Fds[ag.fdName]
 	if !ok {
-		return errs.InvalidColumnFdErr(ag.fdName)
+		return errs.ErrInvalidColumnFd(ag.fdName)
 	}
 
 	b.sb.WriteString(ag.fnName)
@@ -171,16 +171,11 @@ func (b *builder) buildAggregate(ag Aggregate) error {
 	return nil
 }
 
-func (b *builder) buildAssign(assign Assignment) error {
-	if err := b.writeField(assign.fdName); err != nil {
-		return err
-	}
+//func (b *builder) buildAssign(assign Assignment) error {
 
-	b.sb.WriteString("=?")
-	b.addArg(assign.val)
-
-	return nil
-}
+//
+//	return nil
+//}
 
 func (b *builder) addArg(vals ...any) {
 	if len(vals) == 0 {

@@ -92,7 +92,7 @@ func TestSelector_Build(t *testing.T) {
 		}, {
 			name:    "invalid type",
 			builder: NewSelector[selectorBuildArg](db).Where(Col("Invalid").Eq("test")),
-			wantErr: errs.InvalidColumnFdErr("Invalid"),
+			wantErr: errs.ErrInvalidColumnFd("Invalid"),
 		}, {
 			name:    "assign field select",
 			builder: NewSelector[selectorBuildArg](db).Select(Col("Id"), Col("FirstName")),
@@ -102,7 +102,7 @@ func TestSelector_Build(t *testing.T) {
 		}, {
 			name:    "assign invalid field select",
 			builder: NewSelector[selectorBuildArg](db).Select(Col("Id"), Col("Invalid")),
-			wantErr: errs.InvalidColumnFdErr("Invalid"),
+			wantErr: errs.ErrInvalidColumnFd("Invalid"),
 		}, {
 			name:    "avg aggregate func select",
 			builder: NewSelector[selectorBuildArg](db).Select(Avg("Age")),
@@ -142,7 +142,7 @@ func TestSelector_Build(t *testing.T) {
 		}, {
 			name:    "invalid field aggregate func select",
 			builder: NewSelector[selectorBuildArg](db).Select(Avg("Invalid")),
-			wantErr: errs.InvalidColumnFdErr("Invalid"),
+			wantErr: errs.ErrInvalidColumnFd("Invalid"),
 		}, {
 			name:    "raw expression",
 			builder: NewSelector[selectorBuildArg](db).Select(Raw("COUNT(`Id`) AS id_count")),
@@ -238,7 +238,7 @@ func TestSelector_Build(t *testing.T) {
 			builder: NewSelector[selectorBuildArg](db).Having(
 				Col("Id").Gt(1),
 			),
-			wantErr: errs.HavingWithoutGroupByErr,
+			wantErr: errs.ErrHavingWithoutGroupBy,
 		}, {
 			name: "single having",
 			builder: NewSelector[selectorBuildArg](db).GroupBy(Col("Id")).Having(
@@ -303,7 +303,7 @@ func TestSelector_Get(t *testing.T) {
 		{
 			name:     "invalid query",
 			selector: NewSelector[selectorBuildArg](db).Where(Col("Invalid").Eq("...")),
-			wantErr:  errs.InvalidColumnFdErr("Invalid"),
+			wantErr:  errs.ErrInvalidColumnFd("Invalid"),
 		}, {
 			name: "error return",
 			mockFunc: func() {
@@ -370,7 +370,7 @@ func TestSelector_GetMulti(t *testing.T) {
 		{
 			name:     "invalid query",
 			selector: NewSelector[selectorBuildArg](db).Where(Col("Invalid").Eq("...")),
-			wantErr:  errs.InvalidColumnFdErr("Invalid"),
+			wantErr:  errs.ErrInvalidColumnFd("Invalid"),
 		}, {
 			name: "error return",
 			mockFunc: func() {

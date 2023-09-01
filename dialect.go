@@ -1,6 +1,9 @@
 package orm
 
-import "github.com/jrmarcco/easy-orm/internal/errs"
+import (
+	"github.com/jrmarcco/easy-orm/internal/errs"
+	"strconv"
+)
 
 var (
 	StandardSQL     = standardSQL{}
@@ -10,6 +13,7 @@ var (
 
 type Dialect interface {
 	quote() byte
+	bindArg(b *builder)
 	onConflict(b *builder, onConflict *OnConflict) error
 }
 
@@ -25,6 +29,10 @@ var _ Dialect = new(standardSQL)
 
 func (s standardSQL) quote() byte {
 	return '"'
+}
+
+func (s standardSQL) bindArg(b *builder) {
+	b.sb.WriteByte('?')
 }
 
 func (s standardSQL) onConflict(b *builder, onConflict *OnConflict) error {
@@ -48,9 +56,13 @@ func (s standardSQL) onConflict(b *builder, onConflict *OnConflict) error {
 
 		switch typ := assign.(type) {
 		case Assignment:
-			if err := b.buildAssign(typ); err != nil {
+			if err := b.writeField(typ.fdName); err != nil {
 				return err
 			}
+
+			b.addArg(typ.val)
+			b.sb.WriteByte('=')
+			s.bindArg(b)
 		case Column:
 			typ.alias = ""
 			if err := b.buildCol(typ); err != nil {
@@ -88,9 +100,13 @@ func (m mysql) onConflict(b *builder, onConflict *OnConflict) error {
 
 		switch typ := assign.(type) {
 		case Assignment:
-			if err := b.buildAssign(typ); err != nil {
+			if err := b.writeField(typ.fdName); err != nil {
 				return err
 			}
+
+			b.addArg(typ.val)
+			b.sb.WriteByte('=')
+			m.bindArg(b)
 		case Column:
 			typ.alias = ""
 			if err := b.buildCol(typ); err != nil {
@@ -105,7 +121,7 @@ func (m mysql) onConflict(b *builder, onConflict *OnConflict) error {
 
 			b.sb.WriteByte(')')
 		default:
-			return errs.InvalidAssignmentErr
+			return errs.ErrInvalidAssignment
 		}
 	}
 	return nil
@@ -113,4 +129,9 @@ func (m mysql) onConflict(b *builder, onConflict *OnConflict) error {
 
 type postgres struct {
 	standardSQL
+}
+
+func (p postgres) bindArg(b *builder) {
+	b.sb.WriteByte('$')
+	b.sb.WriteString(strconv.Itoa(len(b.args)))
 }

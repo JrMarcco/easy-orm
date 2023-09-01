@@ -49,7 +49,7 @@ func (i *Inserter[T]) OnConflicts(conflicts ...string) *OnConflictBuilder[T] {
 func (i *Inserter[T]) Build() (*Statement, error) {
 
 	if len(i.rows) == 0 {
-		return nil, errs.EmptyInsertRowErr
+		return nil, errs.ErrEmptyInsertRow
 	}
 
 	var err error
@@ -87,7 +87,7 @@ func (i *Inserter[T]) buildInsertCol() error {
 		for _, colFd := range i.colFds {
 			fd, ok := i.model.Fds[colFd]
 			if !ok {
-				return errs.InvalidColumnFdErr(colFd)
+				return errs.ErrInvalidColumnFd(colFd)
 			}
 
 			seqFds = append(seqFds, fd)
@@ -118,16 +118,16 @@ func (i *Inserter[T]) buildInsertCol() error {
 
 		valCreator := i.session.getCore().creator(i.model, row)
 		for fdIdx, fd := range seqFds {
-			if fdIdx > 0 {
-				i.sb.WriteByte(',')
-			}
-			i.sb.WriteByte('?')
-
 			rowVal, err := valCreator.ReadCol(fd.Name)
 			if err != nil {
 				return err
 			}
 			i.args = append(i.args, rowVal)
+
+			if fdIdx > 0 {
+				i.sb.WriteByte(',')
+			}
+			i.dialect.bindArg(&i.builder)
 		}
 		i.sb.WriteByte(')')
 	}

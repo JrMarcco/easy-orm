@@ -48,8 +48,9 @@ type simpleStruct struct {
 	Float64    float64
 	Float64Ptr *float64
 
-	Byte      byte
-	BytePtr   *byte
+	Byte    byte
+	BytePtr *byte
+
 	ByteArray []byte
 
 	String string

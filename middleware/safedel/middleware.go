@@ -29,7 +29,7 @@ func (m *MiddlewareBuilder) Build() orm.Middleware {
 
 			if !strings.Contains(stat.SQL, " WHERE ") {
 				return &orm.StatResult{
-					Err: errs.UnsafeDeleteErr,
+					Err: errs.ErrUnsafeDelete,
 				}
 			}
 

@@ -29,7 +29,7 @@ func getSelectHF[T any](ctx context.Context, session Session, sc *StatContext) *
 	}
 
 	if !rows.Next() {
-		return &StatResult{Err: errs.NoEligibleRowsErr}
+		return &StatResult{Err: errs.ErrNoEligibleRows}
 	}
 
 	res := new(T)

@@ -86,13 +86,13 @@ func (r *registry) parseModel(entity any) (*Model, error) {
 	if elemTyp.Kind() != reflect.Struct {
 
 		if elemTyp.Kind() != reflect.Pointer {
-			return nil, errs.InvalidTypeErr
+			return nil, errs.ErrInvalidType
 		}
 
 		elemTyp = elemTyp.Elem()
 
 		if elemTyp.Kind() != reflect.Struct {
-			return nil, errs.InvalidTypeErr
+			return nil, errs.ErrInvalidType
 		}
 
 	}
@@ -162,17 +162,17 @@ func (r *registry) parseTag(tag reflect.StructTag) (map[string]string, error) {
 	for _, pair := range pairs {
 		content := strings.Split(pair, "=")
 		if len(content) != 2 {
-			return nil, errs.InvalidTagContentErr(pair)
+			return nil, errs.ErrInvalidTagContent(pair)
 		}
 
 		key := strings.Trim(content[0], " ")
 		if key == "" {
-			return nil, errs.EmptyTagKeyErr(pair)
+			return nil, errs.ErrEmptyTagKey(pair)
 		}
 
 		val := strings.Trim(content[1], " ")
 		if val == "" {
-			return nil, errs.EmptyTagValErr(pair)
+			return nil, errs.ErrEmptyTagVal(pair)
 		}
 
 		tagMap[key] = val

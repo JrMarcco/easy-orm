@@ -52,7 +52,7 @@ func TestSelector_Get(t *testing.T) {
 		{
 			name:     "invalid query",
 			selector: orm.NewSelector[selectorBuildArg](db).Where(orm.Col("Invalid").Eq("...")),
-			wantErr:  errs.InvalidColumnFdErr("Invalid"),
+			wantErr:  errs.ErrInvalidColumnFd("Invalid"),
 		}, {
 			name: "error return",
 			mockFunc: func() {
@@ -122,7 +122,7 @@ func TestSelector_GetMulti(t *testing.T) {
 		{
 			name:     "invalid query",
 			selector: orm.NewSelector[selectorBuildArg](db).Where(orm.Col("Invalid").Eq("...")),
-			wantErr:  errs.InvalidColumnFdErr("Invalid"),
+			wantErr:  errs.ErrInvalidColumnFd("Invalid"),
 		}, {
 			name: "error return",
 			mockFunc: func() {

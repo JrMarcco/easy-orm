@@ -36,7 +36,7 @@ func TestInserter_Build(t *testing.T) {
 		{
 			name:     "empty row",
 			inserter: NewInserter[inserterBuildArg](db),
-			wantErr:  errs.EmptyInsertRowErr,
+			wantErr:  errs.ErrEmptyInsertRow,
 		}, {
 			name: "single row",
 			inserter: NewInserter[inserterBuildArg](db).Row(
@@ -107,7 +107,7 @@ func TestInserter_Build(t *testing.T) {
 					Name: "jrmarcco",
 				},
 			),
-			wantErr: errs.InvalidColumnFdErr("Invalid"),
+			wantErr: errs.ErrInvalidColumnFd("Invalid"),
 		}, {
 			name: "specify insert column field with multi row",
 			inserter: NewInserter[inserterBuildArg](db).ColFd("Id", "Name").Row(
@@ -200,7 +200,7 @@ func TestInserter_Build(t *testing.T) {
 					Balance: int64(100),
 				},
 			).OnConflicts().Update(invalidAssign{}),
-			wantErr: errs.InvalidAssignmentErr,
+			wantErr: errs.ErrInvalidAssignment,
 		},
 	}
 
@@ -344,7 +344,7 @@ func TestInserter_Exec(t *testing.T) {
 			inserter: func() *Inserter[inserterBuildArg] {
 				return NewInserter[inserterBuildArg](db).Row(&inserterBuildArg{}).ColFd("invalid")
 			}(),
-			wantErr: errs.InvalidColumnFdErr("invalid"),
+			wantErr: errs.ErrInvalidColumnFd("invalid"),
 		}, {
 			name: "db error",
 			inserter: func() *Inserter[inserterBuildArg] {
