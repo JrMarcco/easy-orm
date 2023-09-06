@@ -171,6 +171,11 @@ func (s *Selector[T]) buildTable(tbRef TableRef) error {
 			return err
 		}
 		s.writeQuote(md.Tb)
+
+		if tbRefTyp.alias != "" {
+			s.sb.WriteString(" AS ")
+			s.writeQuote(tbRefTyp.alias)
+		}
 	case Join:
 		s.sb.WriteByte('(')
 
@@ -203,7 +208,15 @@ func (s *Selector[T]) buildTable(tbRef TableRef) error {
 		}
 
 		if len(tbRefTyp.on) > 0 {
-
+			s.sb.WriteString(" ON ")
+			for i, pd := range tbRefTyp.on {
+				if i > 0 {
+					s.sb.WriteString(" and ")
+				}
+				if err := s.buildExpr(pd); err != nil {
+					return err
+				}
+			}
 		}
 
 		s.sb.WriteByte(')')

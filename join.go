@@ -19,9 +19,21 @@ func TableOf(entity any) Table {
 	return Table{entity: entity}
 }
 
+func TableAs(entity any, alias string) Table {
+	return Table{entity: entity, alias: alias}
+}
+
 var _ TableRef = new(Table)
 
 func (t Table) table() {
+}
+
+func (t Table) Col(fdName string) Column {
+	return Column{
+		tbRef:   t,
+		fdName:  fdName,
+		ufdName: fdName,
+	}
 }
 
 func (t Table) Join(target TableRef) *JoinBuilder {

@@ -12,15 +12,17 @@ type builder struct {
 	sb     strings.Builder
 	args   []any
 
-	dialect Dialect
-	quote   byte
+	registry model.Registry
+	dialect  Dialect
+	quote    byte
 }
 
 func newBuilder(session Session) builder {
 	return builder{
-		sb:      strings.Builder{},
-		dialect: session.getCore().dialect,
-		quote:   session.getCore().dialect.quote(),
+		sb:       strings.Builder{},
+		registry: session.getCore().registry,
+		dialect:  session.getCore().dialect,
+		quote:    session.getCore().dialect.quote(),
 	}
 }
 
@@ -139,13 +141,34 @@ func (b *builder) buildSelectable(sa selectable) error {
 }
 
 func (b *builder) buildCol(col Column) error {
-	if err := b.writeField(col.fdName); err != nil {
-		return err
-	}
+	switch tbRefTyp := col.tbRef.(type) {
+	case nil:
+		if err := b.writeField(col.fdName); err != nil {
+			return err
+		}
 
-	if col.alias != "" {
-		b.sb.WriteString(" AS ")
-		b.writeQuote(col.alias)
+		if col.alias != "" {
+			b.sb.WriteString(" AS ")
+			b.writeQuote(col.alias)
+		}
+	case Table:
+		if tbRefTyp.alias != "" {
+			b.writeQuote(tbRefTyp.alias)
+			b.sb.WriteByte('.')
+		}
+
+		m, err := b.registry.Get(tbRefTyp.entity)
+		if err != nil {
+			return err
+		}
+
+		fd, ok := m.Fds[col.fdName]
+		if !ok {
+			return errs.ErrInvalidColumnFd(col.fdName)
+		}
+		b.writeQuote(fd.ColName)
+	default:
+		return errs.ErrInvalidTbRefType(tbRefTyp)
 	}
 
 	return nil

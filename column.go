@@ -1,6 +1,7 @@
 package orm
 
 type Column struct {
+	tbRef   TableRef
 	fdName  string
 	alias   string
 	ufdName string
@@ -40,7 +41,7 @@ func (c Column) Eq(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opEq,
-		right: valOf(val),
+		right: exprOf(val),
 	}
 }
 
@@ -48,7 +49,7 @@ func (c Column) Gt(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opGt,
-		right: valOf(val),
+		right: exprOf(val),
 	}
 }
 
@@ -56,7 +57,7 @@ func (c Column) Lt(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opLt,
-		right: valOf(val),
+		right: exprOf(val),
 	}
 }
 

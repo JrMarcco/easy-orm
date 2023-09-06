@@ -47,6 +47,15 @@ type Predicate struct {
 	right Expression
 }
 
+func exprOf(expr any) Expression {
+	switch exprTyp := expr.(type) {
+	case Expression:
+		return exprTyp
+	default:
+		return valOf(exprTyp)
+	}
+}
+
 func (p Predicate) expr() {}
 
 func (p Predicate) And(right Predicate) Predicate {

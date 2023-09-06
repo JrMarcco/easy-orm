@@ -447,7 +447,8 @@ func TestSelector_GetMulti(t *testing.T) {
 type mainTb struct {
 	Id uint64
 
-	mainName string
+	MainCol        string
+	AnotherMainCol int64
 
 	FirstJoinCol  string
 	SecondJoinCol string
@@ -456,7 +457,8 @@ type mainTb struct {
 type joinedTb struct {
 	Id uint64
 
-	joinedName string
+	JoinedCol        string
+	AnotherJoinedCol int64
 
 	FirstJoinCol  string
 	SecondJoinCol string
@@ -483,11 +485,42 @@ func TestSelector_Join(t *testing.T) {
 			name: "join with using",
 			builder: func() *Selector[mainTb] {
 				return NewSelector[mainTb](db).From(
-					TableOf(mainTb{}).Join(TableOf(joinedTb{})).Using(Col("FirstJoinCol"), Col("SecondJoinCol")),
+					TableOf(&mainTb{}).Join(TableOf(&joinedTb{})).Using(Col("FirstJoinCol"), Col("SecondJoinCol")),
 				)
 			}(),
 			wantStat: &Statement{
 				SQL: `SELECT * FROM ("main_tb" JOIN "joined_tb" USING ("first_join_col","second_join_col"));`,
+			},
+		}, {
+			name: "join with on",
+			builder: func() *Selector[mainTb] {
+
+				mainRef := TableAs(&mainTb{}, "mt")
+				joinedRef := TableAs(&joinedTb{}, "jt")
+
+				return NewSelector[mainTb](db).From(
+					mainRef.LeftJoin(joinedRef).On(mainRef.Col("MainCol").Eq(joinedRef.Col("JoinedCol"))),
+				)
+			}(),
+			wantStat: &Statement{
+				SQL: `SELECT * FROM ("main_tb" AS "mt" LEFT JOIN "joined_tb" AS "jt" ON "mt"."main_col" = "jt"."joined_col");`,
+			},
+		}, {
+			name: "join with multi on",
+			builder: func() *Selector[mainTb] {
+
+				mainRef := TableAs(&mainTb{}, "mt")
+				joinedRef := TableAs(&joinedTb{}, "jt")
+
+				return NewSelector[mainTb](db).From(
+					mainRef.LeftJoin(joinedRef).On(
+						mainRef.Col("MainCol").Eq(joinedRef.Col("JoinedCol")),
+						mainRef.Col("AnotherMainCol").Eq(joinedRef.Col("AnotherJoinedCol")),
+					),
+				)
+			}(),
+			wantStat: &Statement{
+				SQL: `SELECT * FROM ("main_tb" AS "mt" LEFT JOIN "joined_tb" AS "jt" ON "mt"."main_col" = "jt"."joined_col" and "mt"."another_main_col" = "jt"."another_joined_col");`,
 			},
 		},
 	}
