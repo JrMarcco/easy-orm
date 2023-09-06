@@ -11,6 +11,13 @@ import (
 	"testing"
 )
 
+type selectorBuildArg struct {
+	Id        int64
+	Age       int8
+	FirstName string
+	LastName  *sql.NullString
+}
+
 func TestSelector_Build(t *testing.T) {
 
 	db, err := OpenDB(&sql.DB{}, DBWithDialect(MySqlDialect))
@@ -27,25 +34,6 @@ func TestSelector_Build(t *testing.T) {
 			builder: NewSelector[selectorBuildArg](db),
 			wantStat: &Statement{
 				SQL: "SELECT * FROM `selector_build_arg`;",
-			},
-		},
-		{
-			name:    "basic * select with from",
-			builder: NewSelector[selectorBuildArg](db).From("test_model"),
-			wantStat: &Statement{
-				SQL: "SELECT * FROM `test_model`;",
-			},
-		}, {
-			name:    "basic * select with empty from",
-			builder: NewSelector[selectorBuildArg](db).From(""),
-			wantStat: &Statement{
-				SQL: "SELECT * FROM `selector_build_arg`;",
-			},
-		}, {
-			name:    "basic * select with from db fdName",
-			builder: NewSelector[selectorBuildArg](db).From("test_db.test_model"),
-			wantStat: &Statement{
-				SQL: "SELECT * FROM `test_db`.`test_model`;",
 			},
 		}, {
 			name:    "empty where",
@@ -275,13 +263,6 @@ func TestSelector_Build(t *testing.T) {
 
 }
 
-type selectorBuildArg struct {
-	Id        int64
-	Age       int8
-	FirstName string
-	LastName  *sql.NullString
-}
-
 func TestSelector_Get(t *testing.T) {
 	mockDB, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -458,6 +439,65 @@ func TestSelector_GetMulti(t *testing.T) {
 
 			if err == nil {
 				assert.Equal(t, tc.wantRes, res)
+			}
+		})
+	}
+}
+
+type mainTb struct {
+	Id uint64
+
+	mainName string
+
+	FirstJoinCol  string
+	SecondJoinCol string
+}
+
+type joinedTb struct {
+	Id uint64
+
+	joinedName string
+
+	FirstJoinCol  string
+	SecondJoinCol string
+}
+
+func TestSelector_Join(t *testing.T) {
+
+	db, err := OpenDB(&sql.DB{}, DBWithDialect(PostgresDialect))
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name     string
+		builder  StatBuilder
+		wantStat *Statement
+		wantErr  error
+	}{
+		{
+			name:    "without table reference",
+			builder: NewSelector[mainTb](db),
+			wantStat: &Statement{
+				SQL: `SELECT * FROM "main_tb";`,
+			},
+		}, {
+			name: "join with using",
+			builder: func() *Selector[mainTb] {
+				return NewSelector[mainTb](db).From(
+					TableOf(mainTb{}).Join(TableOf(joinedTb{})).Using(Col("FirstJoinCol"), Col("SecondJoinCol")),
+				)
+			}(),
+			wantStat: &Statement{
+				SQL: `SELECT * FROM ("main_tb" JOIN "joined_tb" USING ("first_join_col","second_join_col"));`,
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			stat, err := tc.builder.Build()
+			assert.Equal(t, tc.wantErr, err)
+			if err == nil {
+				assert.Equal(t, tc.wantStat, stat)
 			}
 		})
 	}

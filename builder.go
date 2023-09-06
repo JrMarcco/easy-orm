@@ -171,12 +171,6 @@ func (b *builder) buildAggregate(ag Aggregate) error {
 	return nil
 }
 
-//func (b *builder) buildAssign(assign Assignment) error {
-
-//
-//	return nil
-//}
-
 func (b *builder) addArg(vals ...any) {
 	if len(vals) == 0 {
 		return

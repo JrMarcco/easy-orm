@@ -14,6 +14,8 @@ type selectable interface {
 
 type Selector[T any] struct {
 	builder
+
+	tbRef       TableRef
 	sas         []selectable
 	whereConds  []condition
 	havingConds []condition
@@ -40,8 +42,8 @@ func (s *Selector[T]) Select(sas ...selectable) *Selector[T] {
 	return s
 }
 
-func (s *Selector[T]) From(tbName string) *Selector[T] {
-	s.tbName = tbName
+func (s *Selector[T]) From(tbRef TableRef) *Selector[T] {
+	s.tbRef = tbRef
 	return s
 }
 
@@ -101,13 +103,14 @@ func (s *Selector[T]) Build() (*Statement, error) {
 				return nil, err
 			}
 		}
-
 	} else {
 		s.sb.WriteByte('*')
 	}
 
 	s.sb.WriteString(" FROM ")
-	s.writeTbName()
+	if err = s.buildTable(s.tbRef); err != nil {
+		return nil, err
+	}
 
 	if len(s.whereConds) != 0 {
 		if err = s.buildConds(s.whereConds); err != nil {
@@ -156,6 +159,59 @@ func (s *Selector[T]) Build() (*Statement, error) {
 		SQL:  s.sb.String(),
 		Args: s.args,
 	}, nil
+}
+
+func (s *Selector[T]) buildTable(tbRef TableRef) error {
+	switch tbRefTyp := tbRef.(type) {
+	case nil:
+		s.writeTbName()
+	case Table:
+		md, err := s.session.getCore().registry.Get(tbRefTyp.entity)
+		if err != nil {
+			return err
+		}
+		s.writeQuote(md.Tb)
+	case Join:
+		s.sb.WriteByte('(')
+
+		if err := s.buildTable(tbRefTyp.left); err != nil {
+			return err
+		}
+
+		s.sb.WriteByte(' ')
+		s.sb.WriteString(tbRefTyp.typ)
+		s.sb.WriteByte(' ')
+
+		if err := s.buildTable(tbRefTyp.right); err != nil {
+			return err
+		}
+
+		if len(tbRefTyp.using) > 0 {
+			s.sb.WriteString(" USING (")
+
+			for i, col := range tbRefTyp.using {
+				if i > 0 {
+					s.sb.WriteByte(',')
+				}
+
+				if err := s.writeField(col.fdName); err != nil {
+					return nil
+				}
+			}
+
+			s.sb.WriteByte(')')
+		}
+
+		if len(tbRefTyp.on) > 0 {
+
+		}
+
+		s.sb.WriteByte(')')
+	default:
+		return errs.ErrInvalidTbRefType(tbRefTyp)
+	}
+
+	return nil
 }
 
 func (s *Selector[T]) buildConds(conds []condition) error {

@@ -30,6 +30,10 @@ func ErrInvalidTagContent(content string) error {
 	return fmt.Errorf("invalid tag content '%s'", content)
 }
 
+func ErrInvalidTbRefType(tbRef any) error {
+	return fmt.Errorf("invalid table reference type: %v", tbRef)
+}
+
 func ErrEmptyTagKey(content string) error {
 	return fmt.Errorf("invalid tag content '%s', key is empty", content)
 }

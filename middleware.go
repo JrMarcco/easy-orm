@@ -5,7 +5,7 @@ import (
 	"github.com/jrmarcco/easy-orm/model"
 )
 
-var (
+const (
 	ScTypRaw    = "RAW"
 	ScTypSelect = "SELECT"
 	ScTypDelete = "DELETE"

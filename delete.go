@@ -46,21 +46,7 @@ func (d *Deleter[T]) Build() (*Statement, error) {
 
 	d.sb = strings.Builder{}
 	d.sb.WriteString("DELETE FROM ")
-
-	if d.tbName == "" {
-		d.writeQuote(d.model.Tb)
-	} else {
-
-		segs := strings.SplitN(d.tbName, ".", 2)
-
-		d.writeQuote(segs[0])
-
-		if len(segs) > 1 {
-			d.sb.WriteByte('.')
-			d.writeQuote(segs[1])
-		}
-
-	}
+	d.writeTbName()
 
 	if len(d.conds) > 0 {
 		for _, cond := range d.conds {
