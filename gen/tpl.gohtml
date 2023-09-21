@@ -1,0 +1,10 @@
+package {{.Package}}
+
+{{range $i, $type := .Types}}
+const (
+    {{- range $j, $field := .Fields}}
+    {{$type.Name}}{{$field.Name}} = "{{$field.Name}}"
+    {{- end}}
+)
+{{end}}
+ 
