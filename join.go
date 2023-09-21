@@ -25,14 +25,12 @@ func TableAs(entity any, alias string) Table {
 
 var _ TableRef = new(Table)
 
-func (t Table) table() {
-}
+func (t Table) table() {}
 
 func (t Table) Col(fdName string) Column {
 	return Column{
-		tbRef:   t,
-		fdName:  fdName,
-		ufdName: fdName,
+		tbRef:  t,
+		fdName: fdName,
 	}
 }
 
@@ -70,8 +68,7 @@ type Join struct {
 
 var _ TableRef = new(Join)
 
-func (j Join) table() {
-}
+func (j Join) table() {}
 
 func (j Join) Join(target TableRef) *JoinBuilder {
 	return &JoinBuilder{
@@ -81,18 +78,18 @@ func (j Join) Join(target TableRef) *JoinBuilder {
 	}
 }
 
-func (j Join) LeftJoin(right TableRef) *JoinBuilder {
+func (j Join) LeftJoin(target TableRef) *JoinBuilder {
 	return &JoinBuilder{
 		typ:   LeftJoinTyp,
 		left:  j,
-		right: right,
+		right: target,
 	}
 }
 
-func (j Join) RightJoin(left TableRef) *JoinBuilder {
+func (j Join) RightJoin(target TableRef) *JoinBuilder {
 	return &JoinBuilder{
 		typ:   RightJoinTyp,
-		left:  left,
+		left:  target,
 		right: j,
 	}
 }
