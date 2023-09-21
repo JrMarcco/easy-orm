@@ -4,6 +4,7 @@ import (
 	"context"
 )
 
+// RawStat 原生 sql 语句
 type RawStat[T any] struct {
 	builder
 

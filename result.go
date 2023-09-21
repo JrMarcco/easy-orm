@@ -2,6 +2,7 @@ package orm
 
 import "database/sql"
 
+// Result 结果集封装
 type Result struct {
 	res sql.Result
 	err error

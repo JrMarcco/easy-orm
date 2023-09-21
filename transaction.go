@@ -6,6 +6,7 @@ import (
 	"errors"
 )
 
+// Tx 事务
 type Tx struct {
 	*Core
 	sqlTx *sql.Tx
