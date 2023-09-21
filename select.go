@@ -84,6 +84,20 @@ func (s *Selector[T]) Offset(offset int64) *Selector[T] {
 	return s
 }
 
+func (s *Selector[T]) AsSubQuery(alias string) SubQ {
+	tbRef := s.tbRef
+	if tbRef == nil {
+		tbRef = TableOf(new(T))
+	}
+
+	return SubQ{
+		builder: s,
+		sas:     s.sas,
+		alias:   alias,
+		tbRef:   tbRef,
+	}
+}
+
 func (s *Selector[T]) Build() (*Statement, error) {
 
 	var err error
@@ -218,8 +232,9 @@ func (s *Selector[T]) buildTable(tbRef TableRef) error {
 				}
 			}
 		}
-
 		s.sb.WriteByte(')')
+	case SubQ:
+		return s.buildSubQuery(tbRefTyp)
 	default:
 		return errs.ErrInvalidTbRefType(tbRefTyp)
 	}

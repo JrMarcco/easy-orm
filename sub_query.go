@@ -2,7 +2,7 @@ package orm
 
 type SubQ struct {
 	builder StatBuilder
-	cols    []selectable
+	sas     []selectable
 	alias   string
 	tbRef   TableRef
 }

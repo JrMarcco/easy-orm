@@ -113,6 +113,10 @@ func (b *builder) buildExpr(expr Expression) error {
 				b.sb.WriteByte(')')
 			}
 		}
+	case SubQ:
+		if err := b.buildSubQuery(exprTyp); err != nil {
+			return err
+		}
 	default:
 		return errs.ErrUnsupportedExpr
 	}
@@ -191,6 +195,30 @@ func (b *builder) buildAggregate(ag Aggregate) error {
 	if ag.alias != "" {
 		b.sb.WriteString(" AS ")
 		b.writeQuote(ag.alias)
+	}
+
+	return nil
+}
+
+// buildSubQuery 构建子查询
+func (b *builder) buildSubQuery(sub SubQ) error {
+	stat, err := sub.builder.Build()
+	if err != nil {
+		return err
+	}
+
+	b.sb.WriteByte('(')
+	b.sb.WriteString(stat.SQL)
+
+	if len(stat.Args) != 0 {
+		b.addArg(stat.Args...)
+	}
+
+	b.sb.WriteByte(')')
+
+	if sub.alias != "" {
+		b.sb.WriteString(" AS ")
+		b.writeQuote(sub.alias)
 	}
 
 	return nil
