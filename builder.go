@@ -140,6 +140,7 @@ func (b *builder) buildSelectable(sa selectable) error {
 	return nil
 }
 
+// buildCol 构建列信息
 func (b *builder) buildCol(col Column) error {
 	switch tbRefTyp := col.tbRef.(type) {
 	case nil:
@@ -174,6 +175,7 @@ func (b *builder) buildCol(col Column) error {
 	return nil
 }
 
+// buildAggregate 构建聚合函数
 func (b *builder) buildAggregate(ag Aggregate) error {
 	fd, ok := b.model.Fds[ag.fdName]
 	if !ok {

@@ -7,7 +7,7 @@ import (
 )
 
 // selectable 标记接口
-// 用来标识可选的查询列
+// 用来标识可选的查询列（列、聚合函数等）
 type selectable interface {
 	selectable()
 }
@@ -211,7 +211,7 @@ func (s *Selector[T]) buildTable(tbRef TableRef) error {
 			s.sb.WriteString(" ON ")
 			for i, pd := range tbRefTyp.on {
 				if i > 0 {
-					s.sb.WriteString(" and ")
+					s.sb.WriteString(" AND ")
 				}
 				if err := s.buildExpr(pd); err != nil {
 					return err

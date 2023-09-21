@@ -34,11 +34,13 @@ func getSelectHF[T any](ctx context.Context, session Session, sc *StatContext) *
 
 	res := new(T)
 
+	// get model
 	md, err := session.getCore().registry.Get(res)
 	if err != nil {
 		return &StatResult{Err: err}
 	}
 
+	// value writer, default writer is unsafe
 	writer := session.getCore().creator(md, res)
 	if err = writer.WriteCols(rows); err != nil {
 		return &StatResult{Err: err}
@@ -53,6 +55,7 @@ func get[T any](ctx context.Context, session Session, sc *StatContext) (*T, erro
 		return getSelectHF[T](ctx, session, innerSc)
 	}
 
+	// build handle func chain
 	core := session.getCore()
 	for i := len(core.mdls) - 1; i >= 0; i-- {
 		hf = core.mdls[i](hf)

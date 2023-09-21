@@ -520,7 +520,7 @@ func TestSelector_Join(t *testing.T) {
 				)
 			}(),
 			wantStat: &Statement{
-				SQL: `SELECT * FROM ("main_tb" AS "mt" LEFT JOIN "joined_tb" AS "jt" ON "mt"."main_col" = "jt"."joined_col" and "mt"."another_main_col" = "jt"."another_joined_col");`,
+				SQL: `SELECT * FROM ("main_tb" AS "mt" LEFT JOIN "joined_tb" AS "jt" ON "mt"."main_col" = "jt"."joined_col" AND "mt"."another_main_col" = "jt"."another_joined_col");`,
 			},
 		},
 	}

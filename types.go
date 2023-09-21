@@ -17,11 +17,13 @@ type Executor interface {
 	Exec(ctx context.Context) Result
 }
 
+// Statement sql语句，包含构造好的 sql 以及参数
 type Statement struct {
 	SQL  string
 	Args []any
 }
 
+// StatBuilder sql语句构造器
 type StatBuilder interface {
 	Build() (*Statement, error)
 }

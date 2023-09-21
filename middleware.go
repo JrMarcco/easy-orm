@@ -13,12 +13,19 @@ const (
 	ScTypInsert = "INSERT"
 )
 
+// StatContext sql statement context
+// include:
+//
+//	statement type
+//	statement builder
+//	related model
 type StatContext struct {
 	Typ     string
 	Builder StatBuilder
 	Model   *model.Model
 }
 
+// StatResult sql statement exec result
 type StatResult struct {
 	Res any
 	Err error
