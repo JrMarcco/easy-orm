@@ -4,7 +4,7 @@ var _ selectable = (*Column)(nil)
 var _ Expression = (*Column)(nil)
 
 type Column struct {
-	name string
+	fieldName string
 }
 
 func (c Column) selectable() {}
@@ -14,7 +14,7 @@ func (c Column) Eq(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opEq,
-		right: ColumnValue{value: val},
+		right: columnValue{value: val},
 	}
 }
 
@@ -22,7 +22,7 @@ func (c Column) Ne(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opNe,
-		right: ColumnValue{value: val},
+		right: columnValue{value: val},
 	}
 }
 
@@ -30,7 +30,7 @@ func (c Column) Gt(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opGt,
-		right: ColumnValue{value: val},
+		right: columnValue{value: val},
 	}
 }
 
@@ -38,14 +38,14 @@ func (c Column) Ge(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opGe,
-		right: ColumnValue{value: val},
+		right: columnValue{value: val},
 	}
 }
 func (c Column) Lt(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opLt,
-		right: ColumnValue{value: val},
+		right: columnValue{value: val},
 	}
 }
 
@@ -53,31 +53,23 @@ func (c Column) Le(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opLe,
-		right: ColumnValue{value: val},
+		right: columnValue{value: val},
 	}
 }
 
-func Col(name string) Column {
+// Col create a column expression.
+//
+// fieldName is the field name of the model.
+func Col(fieldName string) Column {
 	return Column{
-		name: name,
+		fieldName: fieldName,
 	}
 }
 
-var _ Expression = (*ColumnValue)(nil)
+var _ Expression = (*columnValue)(nil)
 
-type ColumnValue struct {
+type columnValue struct {
 	value any
 }
 
-func (c ColumnValue) expr() {}
-
-func valOf(val any) Expression {
-	switch valType := val.(type) {
-	case Predicate:
-		return valType
-	default:
-		return ColumnValue{
-			value: val,
-		}
-	}
-}
+func (c columnValue) expr() {}

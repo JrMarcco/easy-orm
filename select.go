@@ -2,13 +2,9 @@ package easyorm
 
 import (
 	"context"
-	"errors"
-	"reflect"
+	"github.com/JrMarcco/easy-orm/internal/errs"
+	"github.com/JrMarcco/easy-orm/model"
 	"strings"
-)
-
-var (
-	errInvalidTableName = errors.New("invalid table name")
 )
 
 // selectable marker interface, used to identify optional query columns( e.g., columns, aggregate functions ).
@@ -19,6 +15,9 @@ type selectable interface {
 var _ Querier[any] = (*Selector[any])(nil)
 
 type Selector[T any] struct {
+	model    *model.Model
+	registry model.Registry
+
 	tableName string
 	where     []Predicate
 
@@ -47,18 +46,22 @@ func (s *Selector[T]) Where(pds ...Predicate) *Selector[T] {
 }
 
 func (s *Selector[T]) Build() (*Statement, error) {
+	var err error
+	s.model, err = s.registry.GetModel(new(T))
+	if err != nil {
+		return nil, err
+	}
+
 	s.sqlBuilder.WriteString("SELECT * FROM ")
 
 	if s.tableName == "" {
-		var t T
-		typeOfT := reflect.TypeOf(t)
 		s.sqlBuilder.WriteByte('`')
-		s.sqlBuilder.WriteString(typeOfT.Name())
+		s.sqlBuilder.WriteString(s.model.TableName)
 		s.sqlBuilder.WriteByte('`')
 	} else {
 		segments := strings.Split(s.tableName, ".")
 		if len(segments) > 2 {
-			return nil, errInvalidTableName
+			return nil, errs.ErrInvalidTableName
 		}
 
 		s.sqlBuilder.WriteByte('`')
@@ -77,11 +80,11 @@ func (s *Selector[T]) Build() (*Statement, error) {
 	if lenOfWhere > 0 {
 		s.sqlBuilder.WriteString(" WHERE ")
 
-		p := s.where[0]
+		pd := s.where[0]
 		for i := 1; i < lenOfWhere; i++ {
-			p = p.And(s.where[i])
+			pd = pd.And(s.where[i])
 		}
-		if err := s.buildExpr(p); err != nil {
+		if err := s.buildExpr(pd); err != nil {
 			return nil, err
 		}
 	}
@@ -94,11 +97,9 @@ func (s *Selector[T]) Build() (*Statement, error) {
 }
 
 func (s *Selector[T]) buildExpr(expr Expression) error {
-	if expr == nil {
-		return nil
-	}
-
 	switch exprType := expr.(type) {
+	case nil:
+		return nil
 	case Predicate:
 		if _, ok := exprType.left.(Predicate); ok {
 			s.sqlBuilder.WriteByte('(')
@@ -130,12 +131,18 @@ func (s *Selector[T]) buildExpr(expr Expression) error {
 			}
 		}
 	case Column:
+		field, ok := s.model.Fields[exprType.fieldName]
+		if !ok {
+			return errs.ErrInvalidColumn(exprType.fieldName)
+		}
 		s.sqlBuilder.WriteByte('`')
-		s.sqlBuilder.WriteString(exprType.name)
+		s.sqlBuilder.WriteString(field.ColumnName)
 		s.sqlBuilder.WriteByte('`')
-	case ColumnValue:
+	case columnValue:
 		s.sqlBuilder.WriteByte('?')
 		s.addArgs(exprType.value)
+	default:
+		return errs.ErrUnsupportedExpr(expr)
 	}
 	return nil
 }
@@ -148,5 +155,7 @@ func (s *Selector[T]) addArgs(val any) {
 }
 
 func NewSelector[T any]() *Selector[T] {
-	return &Selector[T]{}
+	return &Selector[T]{
+		registry: model.NewRegistry(),
+	}
 }
