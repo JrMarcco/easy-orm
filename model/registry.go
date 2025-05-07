@@ -1,11 +1,12 @@
 package model
 
 import (
-	"github.com/JrMarcco/easy-orm/internal/errs"
 	"reflect"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/JrMarcco/easy-orm/internal/errs"
 )
 
 var _ Registry = (*modelRegistry)(nil)

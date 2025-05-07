@@ -2,9 +2,10 @@ package easyorm
 
 import (
 	"context"
+	"strings"
+
 	"github.com/JrMarcco/easy-orm/internal/errs"
 	"github.com/JrMarcco/easy-orm/model"
-	"strings"
 )
 
 // selectable marker interface, used to identify optional query columns( e.g., columns, aggregate functions ).

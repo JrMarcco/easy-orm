@@ -2,9 +2,10 @@ package easyorm
 
 import (
 	"database/sql"
+	"testing"
+
 	"github.com/JrMarcco/easy-orm/internal/errs"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 type testModel struct {
@@ -95,6 +96,12 @@ func TestSelector_Build(t *testing.T) {
 					18, 12, "jrmarcco",
 				},
 			},
+		}, {
+			name: "select with invalid column",
+			selector: NewSelector[testModel]().Where(
+				Col("InvalidColumn").Eq(1),
+			),
+			wantErr: errs.ErrInvalidColumn("InvalidColumn"),
 		},
 	}
 
