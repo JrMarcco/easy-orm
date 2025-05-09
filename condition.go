@@ -44,9 +44,9 @@ func (p Predicate) Or(right Predicate) Predicate {
 	}
 }
 
-func Not(right Predicate) Predicate {
+func (p Predicate) Not() Predicate {
 	return Predicate{
 		op:    opNot,
-		right: right,
+		right: p,
 	}
 }

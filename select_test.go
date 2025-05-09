@@ -6,6 +6,7 @@ import (
 
 	"github.com/JrMarcco/easy-orm/internal/errs"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testModel struct {
@@ -16,6 +17,9 @@ type testModel struct {
 }
 
 func TestSelector_Build(t *testing.T) {
+	db, err := OpenDB(&sql.DB{}, DBWithDialect(MySQLDialect))
+	require.NoError(t, err)
+
 	tcs := []struct {
 		name          string
 		selector      StatementBuilder
@@ -24,36 +28,14 @@ func TestSelector_Build(t *testing.T) {
 	}{
 		{
 			name:     "basic select",
-			selector: NewSelector[testModel](),
+			selector: NewSelector[testModel](db),
 			wantStatement: &Statement{
 				Sql: "SELECT * FROM `test_model`;",
 			},
 			wantErr: nil,
 		}, {
-			name:     "select from table",
-			selector: NewSelector[testModel]().From("table_name"),
-			wantStatement: &Statement{
-				Sql: "SELECT * FROM `table_name`;",
-			},
-		}, {
-			name:     "select with empty table fieldName",
-			selector: NewSelector[testModel]().From(""),
-			wantStatement: &Statement{
-				Sql: "SELECT * FROM `test_model`;",
-			},
-		}, {
-			name:     "select from table with db fieldName",
-			selector: NewSelector[testModel]().From("db_name.table_name"),
-			wantStatement: &Statement{
-				Sql: "SELECT * FROM `db_name`.`table_name`;",
-			},
-		}, {
-			name:     "select from invalid table fieldName",
-			selector: NewSelector[testModel]().From("db_name.table_name.sub_table_name"),
-			wantErr:  errs.ErrInvalidTableName,
-		}, {
 			name:     "select with where",
-			selector: NewSelector[testModel]().Where(Col("Id").Eq(1)),
+			selector: NewSelector[testModel](db).Where(Col("Id").Eq(1)),
 			wantStatement: &Statement{
 				Sql: "SELECT * FROM `test_model` WHERE `id` = ?;",
 				Args: []any{
@@ -62,7 +44,7 @@ func TestSelector_Build(t *testing.T) {
 			},
 		}, {
 			name:     "select with where not",
-			selector: NewSelector[testModel]().Where(Not(Col("Id").Eq(1))),
+			selector: NewSelector[testModel](db).Where(Col("Id").Eq(1).Not()),
 			wantStatement: &Statement{
 				Sql: "SELECT * FROM `test_model` WHERE NOT (`id` = ?);",
 				Args: []any{
@@ -71,7 +53,7 @@ func TestSelector_Build(t *testing.T) {
 			},
 		}, {
 			name: "select with where and",
-			selector: NewSelector[testModel]().Where(
+			selector: NewSelector[testModel](db).Where(
 				Col("Id").Eq(1),
 				Col("Name").Eq("jrmarcco"),
 			),
@@ -83,7 +65,7 @@ func TestSelector_Build(t *testing.T) {
 			},
 		}, {
 			name: "select with where or",
-			selector: NewSelector[testModel]().Where(
+			selector: NewSelector[testModel](db).Where(
 				Col("Age").Ge(18).
 					Or(
 						Col("Age").Lt(12),
@@ -98,10 +80,10 @@ func TestSelector_Build(t *testing.T) {
 			},
 		}, {
 			name: "select with invalid column",
-			selector: NewSelector[testModel]().Where(
+			selector: NewSelector[testModel](db).Where(
 				Col("InvalidColumn").Eq(1),
 			),
-			wantErr: errs.ErrInvalidColumn("InvalidColumn"),
+			wantErr: errs.ErrInvalidField("InvalidColumn"),
 		},
 	}
 
