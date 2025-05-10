@@ -22,7 +22,7 @@ func (c Column) Eq(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opEq,
-		right: columnValue{value: val},
+		right: valueOf(val),
 	}
 }
 
@@ -30,7 +30,7 @@ func (c Column) Ne(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opNe,
-		right: columnValue{value: val},
+		right: valueOf(val),
 	}
 }
 
@@ -38,7 +38,7 @@ func (c Column) Gt(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opGt,
-		right: columnValue{value: val},
+		right: valueOf(val),
 	}
 }
 
@@ -46,14 +46,14 @@ func (c Column) Ge(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opGe,
-		right: columnValue{value: val},
+		right: valueOf(val),
 	}
 }
 func (c Column) Lt(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opLt,
-		right: columnValue{value: val},
+		right: valueOf(val),
 	}
 }
 
@@ -61,7 +61,7 @@ func (c Column) Le(val any) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opLe,
-		right: columnValue{value: val},
+		right: valueOf(val),
 	}
 }
 
@@ -81,3 +81,12 @@ type columnValue struct {
 }
 
 func (c columnValue) expr() {}
+
+func valueOf(v any) Expression {
+	switch typ := v.(type) {
+	case Expression:
+		return typ
+	default:
+		return columnValue{value: v}
+	}
+}

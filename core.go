@@ -2,6 +2,7 @@ package easyorm
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/JrMarcco/easy-orm/internal/errs"
 	"github.com/JrMarcco/easy-orm/internal/value"
@@ -19,43 +20,31 @@ type Core struct {
 func findOneHF[T any](c context.Context, statementCtx *StatementContext, session session) *StatementResult {
 	statement, err := statementCtx.Builder.Build()
 	if err != nil {
-		return &StatementResult{
-			Err: err,
-		}
+		return &StatementResult{Err: err}
 	}
 
-	rows, err := session.queryContext(c, statement.Sql, statement.Args...)
+	rows, err := session.queryContext(c, statement.SQL, statement.Args...)
 	if err != nil {
-		return &StatementResult{
-			Err: err,
-		}
+		return &StatementResult{Err: err}
 	}
 
 	if !rows.Next() {
-		return &StatementResult{
-			Err: errs.ErrEligibleRow,
-		}
+		return &StatementResult{Err: errs.ErrEligibleRow}
 	}
 
 	res := new(T)
 
 	m, err := session.getCore().registry.GetModel(res)
 	if err != nil {
-		return &StatementResult{
-			Err: err,
-		}
+		return &StatementResult{Err: err}
 	}
 
 	resolver := session.getCore().resolverCreator(m, res)
 	if err = resolver.WriteColumns(rows); err != nil {
-		return &StatementResult{
-			Err: err,
-		}
+		return &StatementResult{Err: err}
 	}
 
-	return &StatementResult{
-		Res: res,
-	}
+	return &StatementResult{Res: res}
 }
 
 func findOne[T any](c context.Context, sc *StatementContext, session session) (*T, error) {
@@ -78,23 +67,17 @@ func findOne[T any](c context.Context, sc *StatementContext, session session) (*
 func findMultiHF[T any](c context.Context, statementCtx *StatementContext, session session) *StatementResult {
 	statement, err := statementCtx.Builder.Build()
 	if err != nil {
-		return &StatementResult{
-			Err: err,
-		}
+		return &StatementResult{Err: err}
 	}
 
-	rows, err := session.queryContext(c, statement.Sql, statement.Args...)
+	rows, err := session.queryContext(c, statement.SQL, statement.Args...)
 	if err != nil {
-		return &StatementResult{
-			Err: err,
-		}
+		return &StatementResult{Err: err}
 	}
 
 	m, err := session.getCore().registry.GetModel(new(T))
 	if err != nil {
-		return &StatementResult{
-			Err: err,
-		}
+		return &StatementResult{Err: err}
 	}
 
 	res := make([]*T, 0, 16)
@@ -103,17 +86,12 @@ func findMultiHF[T any](c context.Context, statementCtx *StatementContext, sessi
 
 		resolver := session.getCore().resolverCreator(m, v)
 		if err = resolver.WriteColumns(rows); err != nil {
-			return &StatementResult{
-				Err: err,
-			}
+			return &StatementResult{Err: err}
 		}
-
 		res = append(res, v)
 	}
 
-	return &StatementResult{
-		Res: res,
-	}
+	return &StatementResult{Res: res}
 }
 
 func findMulti[T any](c context.Context, sc *StatementContext, session session) ([]*T, error) {
@@ -131,4 +109,38 @@ func findMulti[T any](c context.Context, sc *StatementContext, session session) 
 		return nil, sr.Err
 	}
 	return sr.Res.([]*T), nil
+}
+
+func execHF(c context.Context, statementCtx *StatementContext, session session) *StatementResult {
+	statement, err := statementCtx.Builder.Build()
+	if err != nil {
+		return &StatementResult{Err: err}
+	}
+
+	res, err := session.execContext(c, statement.SQL, statement.Args...)
+	if err != nil {
+		return &StatementResult{Err: err}
+	}
+
+	return &StatementResult{Res: res}
+}
+
+func exec(c context.Context, sc *StatementContext, session session) Result {
+	handleFunc := func(c context.Context, innerSc *StatementContext) *StatementResult {
+		return execHF(c, innerSc, session)
+	}
+
+	core := session.getCore()
+	for i := len(core.mws) - 1; i >= 0; i-- {
+		handleFunc = core.mws[i](handleFunc)
+	}
+
+	sr := handleFunc(c, sc)
+	if sr.Res == nil {
+		return Result{err: sr.Err}
+	}
+
+	return Result{
+		res: sr.Res.(sql.Result),
+	}
 }

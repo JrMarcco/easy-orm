@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type basicModel struct {
+type vrTestModel struct {
 	Id       uint64
 	Age      int8
 	Name     string
@@ -36,13 +36,13 @@ func writeColumnsTestFunc(t *testing.T, rc ResolverCreator) {
 	}{
 		{
 			name:   "basic",
-			entity: &basicModel{},
+			entity: &vrTestModel{},
 			mockRows: func() *sqlmock.Rows {
 				rows := sqlmock.NewRows([]string{"id", "age", "name", "nick_name"})
 				rows.AddRow(1, 18, "foo", "bar")
 				return rows
 			}(),
-			wantRes: &basicModel{
+			wantRes: &vrTestModel{
 				Id:       1,
 				Age:      18,
 				Name:     "foo",
@@ -50,13 +50,13 @@ func writeColumnsTestFunc(t *testing.T, rc ResolverCreator) {
 			},
 		}, {
 			name:   "partial field",
-			entity: &basicModel{},
+			entity: &vrTestModel{},
 			mockRows: func() *sqlmock.Rows {
 				rows := sqlmock.NewRows([]string{"id", "nick_name"})
 				rows.AddRow(1, "bar")
 				return rows
 			}(),
-			wantRes: &basicModel{
+			wantRes: &vrTestModel{
 				Id: 1,
 				NickName: &sql.NullString{
 					String: "bar",
@@ -65,13 +65,13 @@ func writeColumnsTestFunc(t *testing.T, rc ResolverCreator) {
 			},
 		}, {
 			name:   "out-of-order field",
-			entity: &basicModel{},
+			entity: &vrTestModel{},
 			mockRows: func() *sqlmock.Rows {
 				rows := sqlmock.NewRows([]string{"nick_name", "id", "name", "age"})
 				rows.AddRow("bar", 1, "foo", 18)
 				return rows
 			}(),
-			wantRes: &basicModel{
+			wantRes: &vrTestModel{
 				Id:   1,
 				Name: "foo",
 				Age:  18,
@@ -104,7 +104,7 @@ func writeColumnsTestFunc(t *testing.T, rc ResolverCreator) {
 
 }
 
-type benchMarkModel struct {
+type vrBenchMarkModel struct {
 	Id       uint64
 	Age      int8
 	Name     string
@@ -143,13 +143,13 @@ func BenchmarkWriteColumns(b *testing.B) {
 		require.NoError(b, err)
 
 		r := model.NewRegistry()
-		m, err := r.GetModel(&benchMarkModel{})
+		m, err := r.GetModel(&vrBenchMarkModel{})
 		require.NoError(b, err)
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			sqlRows.Next()
-			resolver := rc(m, &benchMarkModel{})
+			resolver := rc(m, &vrBenchMarkModel{})
 			_ = resolver.WriteColumns(sqlRows)
 		}
 	}

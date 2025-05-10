@@ -93,6 +93,9 @@ func (b *builder) buildExpr(expr Expression) error {
 	case columnValue:
 		b.addArgs(exprTyp.value)
 		b.dialect.bindArg(b)
+	case RawExpression:
+		b.sqlBuffer.WriteString(exprTyp.raw)
+		b.addArgs(exprTyp.args...)
 	default:
 		return errs.ErrUnsupportedExpr(exprTyp)
 	}
@@ -116,7 +119,7 @@ func (b *builder) buildColumn(column Column) error {
 
 	if column.alias != "" {
 		b.sqlBuffer.WriteString(" AS ")
-		b.sqlBuffer.WriteString(column.alias)
+		b.writeWithQuote(column.alias)
 	}
 
 	return nil
@@ -135,7 +138,7 @@ func (b *builder) buildAggregate(aggregate Aggregate) error {
 
 	if aggregate.alias != "" {
 		b.sqlBuffer.WriteString(" AS ")
-		b.sqlBuffer.WriteString(aggregate.alias)
+		b.writeWithQuote(aggregate.alias)
 	}
 
 	return nil

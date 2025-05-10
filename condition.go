@@ -1,5 +1,35 @@
 package easyorm
 
+import "fmt"
+
+type condTyp string
+
+func (c condTyp) String() string {
+	return fmt.Sprintf(" %s ", string(c))
+}
+
+const (
+	condTypWhere  condTyp = "WHERE"
+	condTypHaving condTyp = "HAVING"
+)
+
+type Condition struct {
+	typ  condTyp
+	expr Expression
+}
+
+func NewCondition(typ condTyp, pds []Predicate) Condition {
+	expr := pds[0]
+
+	for _, pd := range pds[1:] {
+		expr = expr.And(pd)
+	}
+	return Condition{
+		typ:  typ,
+		expr: expr,
+	}
+}
+
 type op string
 
 func (o op) String() string {

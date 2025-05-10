@@ -92,7 +92,8 @@ func Open(driverName string, dsn string, opts ...DBOpt) (*DB, error) {
 
 func OpenDB(sqlDB *sql.DB, opts ...DBOpt) (*DB, error) {
 	core := &Core{
-		registry: model.NewRegistry(),
+		registry:        model.NewRegistry(),
+		resolverCreator: value.NewUnsafeResolver,
 	}
 
 	db := &DB{

@@ -9,13 +9,13 @@ type Querier[T any] interface {
 }
 
 // Executor sql executor for insert, update, delete statement.
-type Executor interface {
+type Executor[T any] interface {
 	Exec(ctx context.Context) (Result, error)
 }
 
 // Statement sql statement, include params.
 type Statement struct {
-	Sql  string
+	SQL  string
 	Args []any
 }
 
