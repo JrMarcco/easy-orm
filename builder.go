@@ -99,24 +99,45 @@ func (b *builder) buildExpr(expr Expression) error {
 	return nil
 }
 
+func (b *builder) buildSelectable(sa selectable) error {
+	switch saTyp := sa.(type) {
+	case Column:
+		return b.buildColumn(saTyp)
+	case Aggregate:
+		return b.buildAggregate(saTyp)
+	}
+	return nil
+}
+
 func (b *builder) buildColumn(column Column) error {
 	if err := b.writeField(column.fieldName); err != nil {
 		return err
 	}
 
-	if column.aliasName != "" {
+	if column.alias != "" {
 		b.sqlBuffer.WriteString(" AS ")
-		b.sqlBuffer.WriteString(column.aliasName)
+		b.sqlBuffer.WriteString(column.alias)
 	}
 
 	return nil
 }
 
-func (b *builder) buildSelectable(sa selectable) error {
-	switch saTyp := sa.(type) {
-	case Column:
-		return b.buildColumn(saTyp)
+func (b *builder) buildAggregate(aggregate Aggregate) error {
+	field, ok := b.model.Fields[aggregate.fieldName]
+	if !ok {
+		return errs.ErrInvalidField(aggregate.fieldName)
 	}
+
+	b.sqlBuffer.WriteString(aggregate.funcName)
+	b.sqlBuffer.WriteByte('(')
+	b.writeWithQuote(field.ColumnName)
+	b.sqlBuffer.WriteByte(')')
+
+	if aggregate.alias != "" {
+		b.sqlBuffer.WriteString(" AS ")
+		b.sqlBuffer.WriteString(aggregate.alias)
+	}
+
 	return nil
 }
 

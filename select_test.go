@@ -117,6 +117,18 @@ func TestSelector_Build(t *testing.T) {
 					1,
 				},
 			},
+		}, {
+			name:     "with aggregate",
+			selector: NewSelector[testModel](db).Select(Count("Id")),
+			wantStatement: &Statement{
+				Sql: "SELECT COUNT(`id`) FROM `test_model`;",
+			},
+		}, {
+			name:     "with alias aggregate",
+			selector: NewSelector[testModel](db).Select(Max("Age").As("max_age")),
+			wantStatement: &Statement{
+				Sql: "SELECT MAX(`age`) AS max_age FROM `test_model`;",
+			},
 		},
 	}
 

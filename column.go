@@ -5,7 +5,7 @@ var _ Expression = (*Column)(nil)
 
 type Column struct {
 	fieldName string
-	aliasName string
+	alias     string
 }
 
 func (c Column) selectable() {}
@@ -14,7 +14,7 @@ func (c Column) expr()       {}
 func (c Column) As(alias string) Column {
 	return Column{
 		fieldName: c.fieldName,
-		aliasName: alias,
+		alias:     alias,
 	}
 }
 
