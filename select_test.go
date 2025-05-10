@@ -1,10 +1,13 @@
 package easyorm
 
 import (
+	"context"
 	"database/sql"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/JrMarcco/easy-orm/internal/errs"
+	"github.com/JrMarcco/easy-orm/internal/value"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -84,6 +87,36 @@ func TestSelector_Build(t *testing.T) {
 				Col("InvalidColumn").Eq(1),
 			),
 			wantErr: errs.ErrInvalidField("InvalidColumn"),
+		}, {
+			name: "with basic selectable",
+			selector: NewSelector[testModel](db).
+				Select(
+					Col("Id"),
+					Col("Name"),
+					Col("Age"),
+				).
+				Where(Col("Id").Eq(1)),
+			wantStatement: &Statement{
+				Sql: "SELECT `id`, `name`, `age` FROM `test_model` WHERE `id` = ?;",
+				Args: []any{
+					1,
+				},
+			},
+		}, {
+			name: "with alias selectable",
+			selector: NewSelector[testModel](db).
+				Select(
+					Col("Id"),
+					Col("Name").As("user_name"),
+					Col("Age"),
+				).
+				Where(Col("Id").Eq(1)),
+			wantStatement: &Statement{
+				Sql: "SELECT `id`, `name` AS user_name, `age` FROM `test_model` WHERE `id` = ?;",
+				Args: []any{
+					1,
+				},
+			},
 		},
 	}
 
@@ -94,6 +127,57 @@ func TestSelector_Build(t *testing.T) {
 
 			if err == nil {
 				assert.Equal(t, tc.wantStatement, statement)
+			}
+		})
+	}
+}
+
+func TestSelector_FindOne(t *testing.T) {
+	mockDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() {
+		_ = mockDB.Close()
+	}()
+
+	db, err := OpenDB(mockDB, DBWithDialect(MySQLDialect), DBWithValueResolver(value.NewUnsafeResolver))
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name     string
+		mockFunc func()
+		selector *Selector[testModel]
+		wantRes  *testModel
+		wantErr  error
+	}{
+		{
+			name: "basic",
+			mockFunc: func() {
+				rows := sqlmock.NewRows([]string{"id", "name", "age", "nick_name"})
+				rows.AddRow(1, "foo", 18, "bar")
+
+				mock.ExpectQuery("SELECT *.").WillReturnRows(rows)
+			},
+			selector: NewSelector[testModel](db),
+			wantRes: &testModel{
+				Id:       1,
+				Name:     "foo",
+				Age:      18,
+				NickName: &sql.NullString{String: "bar", Valid: true},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.mockFunc != nil {
+				tc.mockFunc()
+			}
+
+			var res *testModel
+			res, err = tc.selector.FindOne(context.Background())
+			assert.Equal(t, tc.wantErr, err)
+			if err == nil {
+				assert.Equal(t, tc.wantRes, res)
 			}
 		})
 	}

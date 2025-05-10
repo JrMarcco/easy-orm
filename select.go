@@ -18,17 +18,31 @@ type Selector[T any] struct {
 	limit  int64
 	offset int64
 
-	where []Predicate
+	selectables []selectable
+	where       []Predicate
 }
 
-func (s *Selector[T]) FindOne(ctx context.Context) (T, error) {
-	// TODO implement me
-	panic("implement me")
+func (s *Selector[T]) FindOne(ctx context.Context) (*T, error) {
+	if s.limit != 1 {
+		s.limit = 1
+	}
+
+	return findOne[T](ctx, &StatementContext{
+		Typ:     ScTypSELECT,
+		Builder: s,
+	}, s.session)
 }
 
-func (s *Selector[T]) FindMulti(ctx context.Context) ([]T, error) {
-	//TODO implement me
-	panic("implement me")
+func (s *Selector[T]) FindMulti(ctx context.Context) ([]*T, error) {
+	return findMulti[T](ctx, &StatementContext{
+		Typ:     ScTypSELECT,
+		Builder: s,
+	}, s.session)
+}
+
+func (s *Selector[T]) Select(selectables ...selectable) *Selector[T] {
+	s.selectables = selectables
+	return s
 }
 
 func (s *Selector[T]) Where(pds ...Predicate) *Selector[T] {
@@ -52,7 +66,23 @@ func (s *Selector[T]) Build() (*Statement, error) {
 		return nil, err
 	}
 
-	s.sqlBuffer.WriteString("SELECT * FROM ")
+	s.sqlBuffer.WriteString("SELECT ")
+
+	if len(s.selectables) > 0 {
+		for i, sa := range s.selectables {
+			if i > 0 {
+				s.sqlBuffer.WriteString(", ")
+			}
+
+			if err = s.buildSelectable(sa); err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		s.sqlBuffer.WriteByte('*')
+	}
+
+	s.sqlBuffer.WriteString(" FROM ")
 
 	s.writeTable()
 
@@ -76,9 +106,13 @@ func (s *Selector[T]) Build() (*Statement, error) {
 	}, nil
 }
 
+var _ StatementBuilder = (*Selector[any])(nil)
+
 func NewSelector[T any](session session) *Selector[T] {
 	return &Selector[T]{
 		builder: newBuilder(session),
 		session: session,
+		limit:   0,
+		offset:  -1,
 	}
 }

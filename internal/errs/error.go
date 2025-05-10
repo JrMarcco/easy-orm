@@ -7,6 +7,7 @@ import (
 
 var (
 	ErrInvalidModelType = errors.New("[easy-orm] invalid model entity type, only support struct or pointer to struct")
+	ErrEligibleRow      = errors.New("[easy-orm] eligible row not found")
 )
 
 func ErrUnsupportedExpr(expr any) error {

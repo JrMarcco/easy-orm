@@ -51,6 +51,8 @@ func (r reflectResolver) WriteColumns(rows *sql.Rows) error {
 	return nil
 }
 
+var _ ResolverCreator = NewReflectResolver
+
 func NewReflectResolver(model *model.Model, v any) ValResolver {
 	return reflectResolver{
 		model: model,

@@ -24,6 +24,7 @@ func (u unsafeResolver) ReadColumn(fieldName string) (any, error) {
 
 	p := unsafe.Pointer(uintptr(u.addr) + field.Offset)
 
+	// val representing a pointer to a value of the field.Typ
 	val := reflect.NewAt(field.Typ, p)
 	return val.Elem().Interface(), nil
 }
@@ -35,7 +36,6 @@ func (u unsafeResolver) WriteColumns(rows *sql.Rows) error {
 	}
 
 	values := make([]any, 0, len(columns))
-
 	for _, column := range columns {
 		field, ok := u.model.Columns[column]
 		if !ok {
@@ -47,6 +47,7 @@ func (u unsafeResolver) WriteColumns(rows *sql.Rows) error {
 			return errs.ErrInvalidColumn(column)
 		}
 
+		// val representing a pointer to a value of the field.Typ
 		val := reflect.NewAt(field.Typ, p)
 		values = append(values, val.Interface())
 	}
@@ -56,6 +57,8 @@ func (u unsafeResolver) WriteColumns(rows *sql.Rows) error {
 	}
 	return nil
 }
+
+var _ ResolverCreator = NewUnsafeResolver
 
 func NewUnsafeResolver(model *model.Model, v any) ValResolver {
 	return unsafeResolver{
