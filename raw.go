@@ -59,7 +59,7 @@ type RawExpression struct {
 func (r RawExpression) selectable() {}
 func (r RawExpression) expr()       {}
 
-func RawExpr(raw string, args ...any) Predicate {
+func RawAsPd(raw string, args ...any) Predicate {
 	re := RawExpression{
 		raw:  raw,
 		args: args,

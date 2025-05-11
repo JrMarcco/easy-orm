@@ -175,7 +175,7 @@ func TestSelector_Build(t *testing.T) {
 			name: "with raw expression in where",
 			selector: NewSelector[selectTestModel](db).
 				Where(
-					RawExpr("`id` = (`age` + ?)", 1),
+					RawAsPd("`id` = (`age` + ?)", 1),
 				),
 			wantStatement: &Statement{
 				SQL: "SELECT * FROM `select_test_model` WHERE `id` = (`age` + ?);",
@@ -188,7 +188,7 @@ func TestSelector_Build(t *testing.T) {
 			name: "with raw expression in predicate",
 			selector: NewSelector[selectTestModel](db).
 				Where(
-					Col("Id").Eq(RawExpr("`id` + ?", 1)),
+					Col("Id").Eq(RawAsPd("`id` + ?", 1)),
 				),
 			wantStatement: &Statement{
 				SQL:  "SELECT * FROM `select_test_model` WHERE `id` = (`id` + ?);",

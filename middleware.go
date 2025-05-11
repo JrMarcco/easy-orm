@@ -1,8 +1,12 @@
 package easyorm
 
-import (
-	"context"
-)
+import "context"
+
+type HandleFunc func(ctx context.Context, statementCtx *StatementContext) *StatementResult
+
+type Middleware func(next HandleFunc) HandleFunc
+
+type MiddlewareChain []Middleware
 
 const (
 	ScTypRaw    = "RAW"
@@ -21,7 +25,3 @@ type StatementResult struct {
 	Res any
 	Err error
 }
-
-type HandleFunc func(ctx context.Context, statementCtx *StatementContext) *StatementResult
-
-type Middleware func(next HandleFunc) HandleFunc
