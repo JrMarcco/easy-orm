@@ -13,9 +13,11 @@ type Deleter[T any] struct {
 	where []Condition
 }
 
-func (d *Deleter[T]) Exec(ctx context.Context) (Result, error) {
-	//TODO implement me
-	panic("implement me")
+func (d *Deleter[T]) Exec(ctx context.Context) Result {
+	return exec(ctx, &StatementContext{
+		Typ:     ScTypDELETE,
+		Builder: d,
+	}, d.orm)
 }
 
 func (d *Deleter[T]) Where(pds ...Predicate) *Deleter[T] {

@@ -14,6 +14,8 @@ type Registry interface {
 
 type Model struct {
 	TableName string
+
+	SeqFields []*Field
 	Fields    map[string]*Field // fieldName -> Field
 	Columns   map[string]*Field // ColumnName -> Field
 }

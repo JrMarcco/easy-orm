@@ -10,7 +10,7 @@ type Querier[T any] interface {
 
 // Executor sql executor for insert, update, delete statement.
 type Executor[T any] interface {
-	Exec(ctx context.Context) (Result, error)
+	Exec(ctx context.Context) Result
 }
 
 // Statement sql statement, include params.

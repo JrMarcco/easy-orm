@@ -92,6 +92,8 @@ func (r *modelRegistry) parseModel(typ reflect.Type) (*Model, error) {
 	}
 
 	numField := elemTyp.NumField()
+
+	seqFields := make([]*Field, 0, numField)
 	fields := make(map[string]*Field, numField)
 	columns := make(map[string]*Field, numField)
 
@@ -115,12 +117,15 @@ func (r *modelRegistry) parseModel(typ reflect.Type) (*Model, error) {
 			ColumnName: colName,
 			Offset:     structField.Offset,
 		}
+
+		seqFields = append(seqFields, field)
 		fields[structField.Name] = field
 		columns[colName] = field
 	}
 
 	return &Model{
 		TableName: camelToUnderline(elemTyp.Name()),
+		SeqFields: seqFields,
 		Fields:    fields,
 		Columns:   columns,
 	}, nil

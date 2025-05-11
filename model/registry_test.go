@@ -51,6 +51,34 @@ func TestModelRegistry_RegisterModel(t *testing.T) {
 			entity: basicStruct{},
 			wantModel: &Model{
 				TableName: "basic_struct",
+				SeqFields: []*Field{
+					{
+						Typ:        reflect.TypeOf(uint64(0)),
+						FiledName:  "Id",
+						ColumnName: "id",
+						Offset:     0,
+					}, {
+						Typ:        reflect.TypeOf(int8(0)),
+						FiledName:  "Age",
+						ColumnName: "age",
+						Offset:     8,
+					}, {
+						Typ:        reflect.TypeOf(""),
+						FiledName:  "Name",
+						ColumnName: "name",
+						Offset:     16,
+					}, {
+						Typ:        reflect.TypeOf(&sql.NullString{}),
+						FiledName:  "NickName",
+						ColumnName: "nick_name",
+						Offset:     32,
+					}, {
+						Typ:        reflect.TypeOf(""),
+						FiledName:  "IDCardNo",
+						ColumnName: "id_card_no",
+						Offset:     40,
+					},
+				},
 				Fields: map[string]*Field{
 					"Id": {
 						Typ:        reflect.TypeOf(uint64(0)),
@@ -122,6 +150,34 @@ func TestModelRegistry_RegisterModel(t *testing.T) {
 			entity: &basicStruct{},
 			wantModel: &Model{
 				TableName: "basic_struct",
+				SeqFields: []*Field{
+					{
+						Typ:        reflect.TypeOf(uint64(0)),
+						FiledName:  "Id",
+						ColumnName: "id",
+						Offset:     0,
+					}, {
+						Typ:        reflect.TypeOf(int8(0)),
+						FiledName:  "Age",
+						ColumnName: "age",
+						Offset:     8,
+					}, {
+						Typ:        reflect.TypeOf(""),
+						FiledName:  "Name",
+						ColumnName: "name",
+						Offset:     16,
+					}, {
+						Typ:        reflect.TypeOf(&sql.NullString{}),
+						FiledName:  "NickName",
+						ColumnName: "nick_name",
+						Offset:     32,
+					}, {
+						Typ:        reflect.TypeOf(""),
+						FiledName:  "IDCardNo",
+						ColumnName: "id_card_no",
+						Offset:     40,
+					},
+				},
 				Fields: map[string]*Field{
 					"Id": {
 						Typ:        reflect.TypeOf(uint64(0)),
@@ -203,6 +259,34 @@ func TestModelRegistry_RegisterModel(t *testing.T) {
 			},
 			wantModel: &Model{
 				TableName: "t_table",
+				SeqFields: []*Field{
+					{
+						Typ:        reflect.TypeOf(uint64(0)),
+						FiledName:  "Id",
+						ColumnName: "id",
+						Offset:     0,
+					}, {
+						Typ:        reflect.TypeOf(int8(0)),
+						FiledName:  "Age",
+						ColumnName: "age",
+						Offset:     8,
+					}, {
+						Typ:        reflect.TypeOf(""),
+						FiledName:  "Name",
+						ColumnName: "user_name",
+						Offset:     16,
+					}, {
+						Typ:        reflect.TypeOf(&sql.NullString{}),
+						FiledName:  "NickName",
+						ColumnName: "nick_name",
+						Offset:     32,
+					}, {
+						Typ:        reflect.TypeOf(""),
+						FiledName:  "IDCardNo",
+						ColumnName: "id_card_no",
+						Offset:     40,
+					},
+				},
 				Fields: map[string]*Field{
 					"Id": {
 						Typ:        reflect.TypeOf(uint64(0)),
@@ -277,6 +361,34 @@ func TestModelRegistry_RegisterModel(t *testing.T) {
 			},
 			wantModel: &Model{
 				TableName: "t_table_name",
+				SeqFields: []*Field{
+					{
+						Typ:        reflect.TypeOf(uint64(0)),
+						FiledName:  "Id",
+						ColumnName: "id",
+						Offset:     0,
+					}, {
+						Typ:        reflect.TypeOf(int8(0)),
+						FiledName:  "Age",
+						ColumnName: "age",
+						Offset:     8,
+					}, {
+						Typ:        reflect.TypeOf(""),
+						FiledName:  "Name",
+						ColumnName: "name",
+						Offset:     16,
+					}, {
+						Typ:        reflect.TypeOf(&sql.NullString{}),
+						FiledName:  "NickName",
+						ColumnName: "nick_name",
+						Offset:     32,
+					}, {
+						Typ:        reflect.TypeOf(""),
+						FiledName:  "IDCardNo",
+						ColumnName: "card_no",
+						Offset:     40,
+					},
+				},
 				Fields: map[string]*Field{
 					"Id": {
 						Typ:        reflect.TypeOf(uint64(0)),
@@ -361,6 +473,19 @@ func TestModelRegistry_RegisterModel(t *testing.T) {
 			entity: withTagStruct{},
 			wantModel: &Model{
 				TableName: "with_tag_struct",
+				SeqFields: []*Field{
+					{
+						Typ:        reflect.TypeOf(uint64(0)),
+						FiledName:  "Id",
+						ColumnName: "id",
+						Offset:     0,
+					}, {
+						Typ:        reflect.TypeOf(""),
+						FiledName:  "Name",
+						ColumnName: "user_name",
+						Offset:     8,
+					},
+				},
 				Fields: map[string]*Field{
 					"Id": {
 						Typ:        reflect.TypeOf(uint64(0)),
