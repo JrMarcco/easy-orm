@@ -155,7 +155,7 @@ func (b *builder) addArgs(val ...any) {
 	b.args = append(b.args, val...)
 }
 
-func newBuilder(session session) builder {
+func newBuilder(session orm) builder {
 	dialect := session.getCore().dialect
 	return builder{
 		registry:  session.getCore().registry,

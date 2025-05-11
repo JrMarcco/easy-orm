@@ -14,7 +14,7 @@ var _ Querier[any] = (*Selector[any])(nil)
 type Selector[T any] struct {
 	builder
 
-	session session
+	orm orm
 
 	limit  int64
 	offset int64
@@ -31,14 +31,14 @@ func (s *Selector[T]) FindOne(ctx context.Context) (*T, error) {
 	return findOne[T](ctx, &StatementContext{
 		Typ:     ScTypSELECT,
 		Builder: s,
-	}, s.session)
+	}, s.orm)
 }
 
 func (s *Selector[T]) FindMulti(ctx context.Context) ([]*T, error) {
 	return findMulti[T](ctx, &StatementContext{
 		Typ:     ScTypSELECT,
 		Builder: s,
-	}, s.session)
+	}, s.orm)
 }
 
 func (s *Selector[T]) Select(selectables ...selectable) *Selector[T] {
@@ -71,7 +71,7 @@ func (s *Selector[T]) Offset(offset int64) *Selector[T] {
 
 func (s *Selector[T]) Build() (*Statement, error) {
 	var err error
-	if s.model, err = s.session.getCore().registry.GetModel(new(T)); err != nil {
+	if s.model, err = s.orm.getCore().registry.GetModel(new(T)); err != nil {
 		return nil, err
 	}
 
@@ -128,10 +128,10 @@ func (s *Selector[T]) buildConditions() error {
 
 var _ StatementBuilder = (*Selector[any])(nil)
 
-func NewSelector[T any](session session) *Selector[T] {
+func NewSelector[T any](orm orm) *Selector[T] {
 	return &Selector[T]{
-		builder: newBuilder(session),
-		session: session,
+		builder: newBuilder(orm),
+		orm:     orm,
 		limit:   0,
 		offset:  -1,
 	}

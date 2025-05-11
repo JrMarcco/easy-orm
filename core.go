@@ -17,13 +17,13 @@ type Core struct {
 	middlewareChain MiddlewareChain
 }
 
-func findOneHF[T any](ctx context.Context, statementCtx *StatementContext, session session) *StatementResult {
+func findOneHF[T any](ctx context.Context, statementCtx *StatementContext, orm orm) *StatementResult {
 	statement, err := statementCtx.Builder.Build()
 	if err != nil {
 		return &StatementResult{Err: err}
 	}
 
-	rows, err := session.queryContext(ctx, statement.SQL, statement.Args...)
+	rows, err := orm.queryContext(ctx, statement.SQL, statement.Args...)
 	if err != nil {
 		return &StatementResult{Err: err}
 	}
@@ -33,12 +33,12 @@ func findOneHF[T any](ctx context.Context, statementCtx *StatementContext, sessi
 	}
 
 	res := new(T)
-	m, err := session.getCore().registry.GetModel(res)
+	m, err := orm.getCore().registry.GetModel(res)
 	if err != nil {
 		return &StatementResult{Err: err}
 	}
 
-	resolver := session.getCore().resolverCreator(m, res)
+	resolver := orm.getCore().resolverCreator(m, res)
 	if err = resolver.WriteColumns(rows); err != nil {
 		return &StatementResult{Err: err}
 	}
@@ -46,12 +46,12 @@ func findOneHF[T any](ctx context.Context, statementCtx *StatementContext, sessi
 	return &StatementResult{Res: res}
 }
 
-func findOne[T any](ctx context.Context, statementCtx *StatementContext, session session) (*T, error) {
+func findOne[T any](ctx context.Context, statementCtx *StatementContext, orm orm) (*T, error) {
 	handleFunc := func(innerCtx context.Context, innerStatementCtx *StatementContext) *StatementResult {
-		return findOneHF[T](innerCtx, innerStatementCtx, session)
+		return findOneHF[T](innerCtx, innerStatementCtx, orm)
 	}
 
-	core := session.getCore()
+	core := orm.getCore()
 	for i := len(core.middlewareChain) - 1; i >= 0; i-- {
 		handleFunc = core.middlewareChain[i](handleFunc)
 	}
@@ -63,18 +63,18 @@ func findOne[T any](ctx context.Context, statementCtx *StatementContext, session
 	return sr.Res.(*T), nil
 }
 
-func findMultiHF[T any](ctx context.Context, statementCtx *StatementContext, session session) *StatementResult {
+func findMultiHF[T any](ctx context.Context, statementCtx *StatementContext, orm orm) *StatementResult {
 	statement, err := statementCtx.Builder.Build()
 	if err != nil {
 		return &StatementResult{Err: err}
 	}
 
-	rows, err := session.queryContext(ctx, statement.SQL, statement.Args...)
+	rows, err := orm.queryContext(ctx, statement.SQL, statement.Args...)
 	if err != nil {
 		return &StatementResult{Err: err}
 	}
 
-	m, err := session.getCore().registry.GetModel(new(T))
+	m, err := orm.getCore().registry.GetModel(new(T))
 	if err != nil {
 		return &StatementResult{Err: err}
 	}
@@ -83,7 +83,7 @@ func findMultiHF[T any](ctx context.Context, statementCtx *StatementContext, ses
 	for rows.Next() {
 		v := new(T)
 
-		resolver := session.getCore().resolverCreator(m, v)
+		resolver := orm.getCore().resolverCreator(m, v)
 		if err = resolver.WriteColumns(rows); err != nil {
 			return &StatementResult{Err: err}
 		}
@@ -93,12 +93,12 @@ func findMultiHF[T any](ctx context.Context, statementCtx *StatementContext, ses
 	return &StatementResult{Res: res}
 }
 
-func findMulti[T any](ctx context.Context, statementCtx *StatementContext, session session) ([]*T, error) {
+func findMulti[T any](ctx context.Context, statementCtx *StatementContext, orm orm) ([]*T, error) {
 	handleFunc := func(innerCtx context.Context, innerStatementCtx *StatementContext) *StatementResult {
-		return findMultiHF[T](innerCtx, innerStatementCtx, session)
+		return findMultiHF[T](innerCtx, innerStatementCtx, orm)
 	}
 
-	core := session.getCore()
+	core := orm.getCore()
 	for i := len(core.middlewareChain) - 1; i >= 0; i-- {
 		handleFunc = core.middlewareChain[i](handleFunc)
 	}
@@ -110,13 +110,13 @@ func findMulti[T any](ctx context.Context, statementCtx *StatementContext, sessi
 	return sr.Res.([]*T), nil
 }
 
-func execHF(ctx context.Context, statementCtx *StatementContext, session session) *StatementResult {
+func execHF(ctx context.Context, statementCtx *StatementContext, orm orm) *StatementResult {
 	statement, err := statementCtx.Builder.Build()
 	if err != nil {
 		return &StatementResult{Err: err}
 	}
 
-	res, err := session.execContext(ctx, statement.SQL, statement.Args...)
+	res, err := orm.execContext(ctx, statement.SQL, statement.Args...)
 	if err != nil {
 		return &StatementResult{Err: err}
 	}
@@ -124,12 +124,12 @@ func execHF(ctx context.Context, statementCtx *StatementContext, session session
 	return &StatementResult{Res: res}
 }
 
-func exec(ctx context.Context, statementCtx *StatementContext, session session) Result {
+func exec(ctx context.Context, statementCtx *StatementContext, orm orm) Result {
 	handleFunc := func(innerCtx context.Context, innerStatementCtx *StatementContext) *StatementResult {
-		return execHF(innerCtx, innerStatementCtx, session)
+		return execHF(innerCtx, innerStatementCtx, orm)
 	}
 
-	core := session.getCore()
+	core := orm.getCore()
 	for i := len(core.middlewareChain) - 1; i >= 0; i-- {
 		handleFunc = core.middlewareChain[i](handleFunc)
 	}

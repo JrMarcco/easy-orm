@@ -8,7 +8,7 @@ var _ Executor[any] = (*Raw[any])(nil)
 type Raw[T any] struct {
 	builder
 
-	session session
+	session orm
 	sql     string
 	args    []any
 }
@@ -39,7 +39,7 @@ func (r *Raw[T]) Exec(ctx context.Context) (Result, error) {
 	panic("implement me")
 }
 
-func NewRaw[T any](session session, sql string, args ...any) *Raw[T] {
+func NewRaw[T any](session orm, sql string, args ...any) *Raw[T] {
 	return &Raw[T]{
 		builder: newBuilder(session),
 		session: session,

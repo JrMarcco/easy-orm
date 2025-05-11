@@ -6,11 +6,11 @@ import (
 )
 
 var (
-	_ session = (*DB)(nil)
-	_ session = (*Tx)(nil)
+	_ orm = (*DB)(nil)
+	_ orm = (*Tx)(nil)
 )
 
-type session interface {
+type orm interface {
 	getCore() *Core
 	queryContext(ctx context.Context, sql string, args ...any) (*sql.Rows, error)
 	execContext(ctx context.Context, sql string, args ...any) (sql.Result, error)

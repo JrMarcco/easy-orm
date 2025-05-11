@@ -9,8 +9,8 @@ var _ Executor[any] = (*Deleter[any])(nil)
 type Deleter[T any] struct {
 	builder
 
-	session session
-	where   []Condition
+	orm   orm
+	where []Condition
 }
 
 func (d *Deleter[T]) Exec(ctx context.Context) (Result, error) {
@@ -34,7 +34,7 @@ func (d *Deleter[T]) Where(pds ...Predicate) *Deleter[T] {
 func (d *Deleter[T]) Build() (*Statement, error) {
 	var err error
 
-	if d.model, err = d.session.getCore().registry.GetModel(new(T)); err != nil {
+	if d.model, err = d.orm.getCore().registry.GetModel(new(T)); err != nil {
 		return nil, err
 	}
 
@@ -64,9 +64,9 @@ func (d *Deleter[T]) buildCondition() error {
 	return nil
 }
 
-func NewDeleter[T any](session session) *Deleter[T] {
+func NewDeleter[T any](orm orm) *Deleter[T] {
 	return &Deleter[T]{
-		builder: newBuilder(session),
-		session: session,
+		builder: newBuilder(orm),
+		orm:     orm,
 	}
 }
