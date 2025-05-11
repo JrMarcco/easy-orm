@@ -34,7 +34,7 @@ func (r *Raw[T]) Build() (*Statement, error) {
 	}, nil
 }
 
-func (r *Raw[T]) Exec(ctx context.Context) (Result, error) {
+func (r *Raw[T]) Exec(ctx context.Context) Result {
 	//TODO implement me
 	panic("implement me")
 }
