@@ -23,7 +23,7 @@ func TestRaw_FindOne(t *testing.T) {
 		_ = mockDB.Close()
 	}()
 
-	db, err := OpenDB(mockDB, DBWithDialect(MySQLDialect))
+	db, err := OpenDB(mockDB, MySQLDialect)
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -107,7 +107,7 @@ func TestRaw_FindMulti(t *testing.T) {
 		_ = mockDB.Close()
 	}()
 
-	db, err := OpenDB(mockDB, DBWithDialect(MySQLDialect))
+	db, err := OpenDB(mockDB, MySQLDialect)
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -179,7 +179,7 @@ func TestRaw_Exec(t *testing.T) {
 		_ = mockDB.Close()
 	}()
 
-	db, err := OpenDB(mockDB, DBWithDialect(MySQLDialect))
+	db, err := OpenDB(mockDB, MySQLDialect)
 	require.NoError(t, err)
 
 	tcs := []struct {

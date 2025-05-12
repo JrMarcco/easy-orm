@@ -17,7 +17,7 @@ type deleteTestModel struct {
 }
 
 func TestDeleter_Build(t *testing.T) {
-	db, err := OpenDB(&sql.DB{}, DBWithDialect(MySQLDialect))
+	db, err := OpenDB(&sql.DB{}, MySQLDialect)
 	require.NoError(t, err)
 
 	tcs := []struct {

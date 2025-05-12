@@ -64,12 +64,6 @@ func (db *DB) DoTx(ctx context.Context, bizFunc func(ctx context.Context, tx *Tx
 
 type DBOpt func(db *DB)
 
-func DBWithDialect(dialect Dialect) DBOpt {
-	return func(db *DB) {
-		db.dialect = dialect
-	}
-}
-
 func DBWithRegistry(registry model.Registry) DBOpt {
 	return func(db *DB) {
 		db.registry = registry
@@ -82,16 +76,22 @@ func DBWithValueResolver(resolverCreator value.ResolverCreator) DBOpt {
 	}
 }
 
-func Open(driverName string, dsn string, opts ...DBOpt) (*DB, error) {
+func DBWithMiddlewareChain(middlewareChain MiddlewareChain) DBOpt {
+	return func(db *DB) {
+		db.middlewareChain = middlewareChain
+	}
+}
+
+func Open(driverName string, dsn string, dialect Dialect, opts ...DBOpt) (*DB, error) {
 	sqlDB, err := sql.Open(driverName, dsn)
 	if err != nil {
 		return nil, err
 	}
 
-	return OpenDB(sqlDB, opts...)
+	return OpenDB(sqlDB, dialect, opts...)
 }
 
-func OpenDB(sqlDB *sql.DB, opts ...DBOpt) (*DB, error) {
+func OpenDB(sqlDB *sql.DB, dialect Dialect, opts ...DBOpt) (*DB, error) {
 	core := &core{
 		registry:        model.NewRegistry(),
 		resolverCreator: value.NewUnsafeResolver,
@@ -101,6 +101,8 @@ func OpenDB(sqlDB *sql.DB, opts ...DBOpt) (*DB, error) {
 		core:  core,
 		sqlDB: sqlDB,
 	}
+
+	db.dialect = dialect
 
 	for _, opt := range opts {
 		opt(db)

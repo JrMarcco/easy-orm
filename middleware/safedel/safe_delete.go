@@ -22,7 +22,7 @@ func (m *MiddlewareBuilder) Build() easyorm.Middleware {
 				return &easyorm.OrmResult{Err: err}
 			}
 
-			if strings.Contains(statement.SQL, "WHERE") {
+			if !strings.Contains(statement.SQL, "WHERE") {
 				return &easyorm.OrmResult{
 					Err: errs.ErrUnsafeDelete,
 				}

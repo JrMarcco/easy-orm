@@ -21,7 +21,7 @@ type insertTestModel struct {
 }
 
 func TestInserter_Build(t *testing.T) {
-	db, err := OpenDB(&sql.DB{}, DBWithDialect(MySQLDialect))
+	db, err := OpenDB(&sql.DB{}, MySQLDialect)
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -156,7 +156,7 @@ func TestInserter_Build(t *testing.T) {
 }
 
 func TestInserter_OnConflict_Postgres(t *testing.T) {
-	db, err := OpenDB(&sql.DB{}, DBWithDialect(PostgresDialect))
+	db, err := OpenDB(&sql.DB{}, PostgresDialect)
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -253,7 +253,7 @@ func TestInserter_Exec(t *testing.T) {
 		_ = mockDB.Close()
 	}()
 
-	db, err := OpenDB(mockDB, DBWithDialect(MySQLDialect))
+	db, err := OpenDB(mockDB, MySQLDialect)
 	require.NoError(t, err)
 
 	tcs := []struct {

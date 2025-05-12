@@ -51,9 +51,9 @@ func findOne[T any](ctx context.Context, ormCtx *OrmContext, orm orm) (*T, error
 		return findOneHF[T](innerCtx, innerOrmCtx, orm)
 	}
 
-	core := orm.getCore()
-	for i := len(core.middlewareChain) - 1; i >= 0; i-- {
-		handleFunc = core.middlewareChain[i](handleFunc)
+	c := orm.getCore()
+	for i := len(c.middlewareChain) - 1; i >= 0; i-- {
+		handleFunc = c.middlewareChain[i](handleFunc)
 	}
 
 	sr := handleFunc(ctx, ormCtx)
@@ -98,9 +98,9 @@ func findMulti[T any](ctx context.Context, ormCtx *OrmContext, orm orm) ([]*T, e
 		return findMultiHF[T](innerCtx, innerOrmCtx, orm)
 	}
 
-	core := orm.getCore()
-	for i := len(core.middlewareChain) - 1; i >= 0; i-- {
-		handleFunc = core.middlewareChain[i](handleFunc)
+	c := orm.getCore()
+	for i := len(c.middlewareChain) - 1; i >= 0; i-- {
+		handleFunc = c.middlewareChain[i](handleFunc)
 	}
 
 	sr := handleFunc(ctx, ormCtx)
@@ -129,9 +129,9 @@ func exec(ctx context.Context, ormCtx *OrmContext, orm orm) Result {
 		return execHF(innerCtx, innerOrmCtx, orm)
 	}
 
-	core := orm.getCore()
-	for i := len(core.middlewareChain) - 1; i >= 0; i-- {
-		handleFunc = core.middlewareChain[i](handleFunc)
+	c := orm.getCore()
+	for i := len(c.middlewareChain) - 1; i >= 0; i-- {
+		handleFunc = c.middlewareChain[i](handleFunc)
 	}
 
 	sr := handleFunc(ctx, ormCtx)
