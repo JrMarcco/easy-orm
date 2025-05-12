@@ -241,33 +241,33 @@ func TestSelector_Build(t *testing.T) {
 			},
 		}, {
 			name:     "with single asc",
-			selector: NewSelector[selectTestModel](db).OrderBy(Asc(Col("Id"))),
+			selector: NewSelector[selectTestModel](db).OrderBy(Asc("Id")),
 			wantStatement: &Statement{
 				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` ASC;",
 			},
 		}, {
 			name:     "with single desc",
-			selector: NewSelector[selectTestModel](db).OrderBy(Desc(Col("Id"))),
+			selector: NewSelector[selectTestModel](db).OrderBy(Desc("Id")),
 			wantStatement: &Statement{
 				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` DESC;",
 			},
 		}, {
 			name:     "with multiple asc",
-			selector: NewSelector[selectTestModel](db).OrderBy(Asc(Col("Id")), Asc(Col("Age"))),
+			selector: NewSelector[selectTestModel](db).OrderBy(Asc("Id"), Asc("Age")),
 			wantStatement: &Statement{
 				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` ASC, `age` ASC;",
 			},
 		}, {
 			name:     "with multiple desc",
-			selector: NewSelector[selectTestModel](db).OrderBy(Desc(Col("Id")), Desc(Col("Age"))),
+			selector: NewSelector[selectTestModel](db).OrderBy(Desc("Id"), Desc("Age")),
 			wantStatement: &Statement{
 				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` DESC, `age` DESC;",
 			},
 		}, {
 			name: "with single asc and desc",
 			selector: NewSelector[selectTestModel](db).OrderBy(
-				Asc(Col("Id")),
-				Desc(Col("Age")),
+				Asc("Id"),
+				Desc("Age"),
 			),
 			wantStatement: &Statement{
 				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` ASC, `age` DESC;",
@@ -275,13 +275,17 @@ func TestSelector_Build(t *testing.T) {
 		}, {
 			name: "with multiple asc and desc",
 			selector: NewSelector[selectTestModel](db).OrderBy(
-				Asc(Col("Id")),
-				Desc(Col("Age")),
-				Asc(Col("Name")),
+				Asc("Id"),
+				Desc("Age"),
+				Asc("Name"),
 			),
 			wantStatement: &Statement{
 				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` ASC, `age` DESC, `name` ASC;",
 			},
+		}, {
+			name:     "with invalid order",
+			selector: NewSelector[insertTestModel](db).OrderBy(Asc("InvalidColumn")),
+			wantErr:  errs.ErrInvalidField("InvalidColumn"),
 		},
 	}
 

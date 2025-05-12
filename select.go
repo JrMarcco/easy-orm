@@ -152,7 +152,7 @@ func (s *Selector[T]) Build() (*Statement, error) {
 		s.sqlBuffer.WriteString(strconv.FormatInt(s.limit, 10))
 	}
 
-	if s.offset > -1 {
+	if s.offset > 0 {
 		s.sqlBuffer.WriteString(" OFFSET ")
 		s.sqlBuffer.WriteString(strconv.FormatInt(s.offset, 10))
 	}
@@ -193,9 +193,9 @@ func (s *Selector[T]) buildOrderBy() error {
 			s.sqlBuffer.WriteString(", ")
 		}
 
-		field, ok := s.model.Fields[ob.column.fieldName]
+		field, ok := s.model.Fields[ob.fieldName]
 		if !ok {
-			return errs.ErrInvalidField(ob.column.fieldName)
+			return errs.ErrInvalidField(ob.fieldName)
 		}
 		s.writeWithQuote(field.ColumnName)
 		s.sqlBuffer.WriteString(" ")
@@ -216,21 +216,21 @@ func (o orderTyp) String() string {
 }
 
 type OrderBy struct {
-	column Column
-	typ    orderTyp
+	fieldName string
+	typ       orderTyp
 }
 
-func Asc(column Column) OrderBy {
+func Asc(fieldName string) OrderBy {
 	return OrderBy{
-		column: column,
-		typ:    orderAsc,
+		fieldName: fieldName,
+		typ:       orderAsc,
 	}
 }
 
-func Desc(column Column) OrderBy {
+func Desc(fieldName string) OrderBy {
 	return OrderBy{
-		column: column,
-		typ:    orderDesc,
+		fieldName: fieldName,
+		typ:       orderDesc,
 	}
 }
 
