@@ -20,7 +20,7 @@ type Inserter[T any] struct {
 }
 
 func (i *Inserter[T]) Exec(ctx context.Context) Result {
-	return exec(ctx, &StatementContext{
+	return exec(ctx, &OrmContext{
 		Typ:     ScTypINSERT,
 		Builder: i,
 	}, i.orm)

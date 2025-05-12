@@ -119,7 +119,7 @@ type vrBenchMarkModel struct {
 // goos: linux
 // goarch: amd64
 // pkg: github.com/JrMarcco/easy-orm/internal/value
-// cpu: 13th Gen Intel(R) Core(TM) i7-13700KF
+// cpu: 13th Gen Intel(R) core(TM) i7-13700KF
 // BenchmarkWriteColumns/reflect-24                 1347993               897.6 ns/op           592 B/op         13 allocs/op
 // BenchmarkWriteColumns/unsafe-24                  3359084               358.5 ns/op           280 B/op          4 allocs/op
 func BenchmarkWriteColumns(b *testing.B) {

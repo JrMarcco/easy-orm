@@ -11,7 +11,7 @@ var (
 )
 
 type orm interface {
-	getCore() *Core
+	getCore() *core
 	queryContext(ctx context.Context, sql string, args ...any) (*sql.Rows, error)
 	execContext(ctx context.Context, sql string, args ...any) (sql.Result, error)
 }

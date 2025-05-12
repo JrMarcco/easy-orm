@@ -2,7 +2,7 @@ package easyorm
 
 import "context"
 
-type HandleFunc func(ctx context.Context, statementCtx *StatementContext) *StatementResult
+type HandleFunc func(ctx context.Context, ormCtx *OrmContext) *OrmResult
 
 type Middleware func(next HandleFunc) HandleFunc
 
@@ -15,13 +15,3 @@ const (
 	ScTypUPDATE = "UPDATE"
 	ScTypDELETE = "DELETE"
 )
-
-type StatementContext struct {
-	Typ     string
-	Builder StatementBuilder
-}
-
-type StatementResult struct {
-	Res any
-	Err error
-}

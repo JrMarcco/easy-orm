@@ -11,12 +11,12 @@ import (
 
 // DB a decorator for sql.DB
 type DB struct {
-	*Core
+	*core
 	sqlDB *sql.DB
 }
 
-func (db *DB) getCore() *Core {
-	return db.Core
+func (db *DB) getCore() *core {
+	return db.core
 }
 
 func (db *DB) queryContext(ctx context.Context, sql string, args ...any) (*sql.Rows, error) {
@@ -34,6 +34,7 @@ func (db *DB) beginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 	}
 
 	return &Tx{
+		core:  db.core,
 		sqlTx: sqlTx,
 	}, nil
 }
@@ -91,13 +92,13 @@ func Open(driverName string, dsn string, opts ...DBOpt) (*DB, error) {
 }
 
 func OpenDB(sqlDB *sql.DB, opts ...DBOpt) (*DB, error) {
-	core := &Core{
+	core := &core{
 		registry:        model.NewRegistry(),
 		resolverCreator: value.NewUnsafeResolver,
 	}
 
 	db := &DB{
-		Core:  core,
+		core:  core,
 		sqlDB: sqlDB,
 	}
 

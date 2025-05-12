@@ -14,7 +14,7 @@ type Deleter[T any] struct {
 }
 
 func (d *Deleter[T]) Exec(ctx context.Context) Result {
-	return exec(ctx, &StatementContext{
+	return exec(ctx, &OrmContext{
 		Typ:     ScTypDELETE,
 		Builder: d,
 	}, d.orm)

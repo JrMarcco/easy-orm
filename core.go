@@ -9,7 +9,7 @@ import (
 	"github.com/JrMarcco/easy-orm/model"
 )
 
-type Core struct {
+type core struct {
 	dialect         Dialect
 	registry        model.Registry
 	resolverCreator value.ResolverCreator
@@ -17,38 +17,38 @@ type Core struct {
 	middlewareChain MiddlewareChain
 }
 
-func findOneHF[T any](ctx context.Context, statementCtx *StatementContext, orm orm) *StatementResult {
-	statement, err := statementCtx.Builder.Build()
+func findOneHF[T any](ctx context.Context, ormCtx *OrmContext, orm orm) *OrmResult {
+	statement, err := ormCtx.Builder.Build()
 	if err != nil {
-		return &StatementResult{Err: err}
+		return &OrmResult{Err: err}
 	}
 
 	rows, err := orm.queryContext(ctx, statement.SQL, statement.Args...)
 	if err != nil {
-		return &StatementResult{Err: err}
+		return &OrmResult{Err: err}
 	}
 
 	if !rows.Next() {
-		return &StatementResult{Err: errs.ErrEligibleRow}
+		return &OrmResult{Err: errs.ErrEligibleRow}
 	}
 
 	res := new(T)
 	m, err := orm.getCore().registry.GetModel(res)
 	if err != nil {
-		return &StatementResult{Err: err}
+		return &OrmResult{Err: err}
 	}
 
 	resolver := orm.getCore().resolverCreator(m, res)
 	if err = resolver.WriteColumns(rows); err != nil {
-		return &StatementResult{Err: err}
+		return &OrmResult{Err: err}
 	}
 
-	return &StatementResult{Res: res}
+	return &OrmResult{Res: res}
 }
 
-func findOne[T any](ctx context.Context, statementCtx *StatementContext, orm orm) (*T, error) {
-	handleFunc := func(innerCtx context.Context, innerStatementCtx *StatementContext) *StatementResult {
-		return findOneHF[T](innerCtx, innerStatementCtx, orm)
+func findOne[T any](ctx context.Context, ormCtx *OrmContext, orm orm) (*T, error) {
+	handleFunc := func(innerCtx context.Context, innerOrmCtx *OrmContext) *OrmResult {
+		return findOneHF[T](innerCtx, innerOrmCtx, orm)
 	}
 
 	core := orm.getCore()
@@ -56,27 +56,27 @@ func findOne[T any](ctx context.Context, statementCtx *StatementContext, orm orm
 		handleFunc = core.middlewareChain[i](handleFunc)
 	}
 
-	sr := handleFunc(ctx, statementCtx)
+	sr := handleFunc(ctx, ormCtx)
 	if sr.Err != nil {
 		return nil, sr.Err
 	}
 	return sr.Res.(*T), nil
 }
 
-func findMultiHF[T any](ctx context.Context, statementCtx *StatementContext, orm orm) *StatementResult {
-	statement, err := statementCtx.Builder.Build()
+func findMultiHF[T any](ctx context.Context, ormCtx *OrmContext, orm orm) *OrmResult {
+	statement, err := ormCtx.Builder.Build()
 	if err != nil {
-		return &StatementResult{Err: err}
+		return &OrmResult{Err: err}
 	}
 
 	rows, err := orm.queryContext(ctx, statement.SQL, statement.Args...)
 	if err != nil {
-		return &StatementResult{Err: err}
+		return &OrmResult{Err: err}
 	}
 
 	m, err := orm.getCore().registry.GetModel(new(T))
 	if err != nil {
-		return &StatementResult{Err: err}
+		return &OrmResult{Err: err}
 	}
 
 	res := make([]*T, 0, 16)
@@ -85,17 +85,17 @@ func findMultiHF[T any](ctx context.Context, statementCtx *StatementContext, orm
 
 		resolver := orm.getCore().resolverCreator(m, v)
 		if err = resolver.WriteColumns(rows); err != nil {
-			return &StatementResult{Err: err}
+			return &OrmResult{Err: err}
 		}
 		res = append(res, v)
 	}
 
-	return &StatementResult{Res: res}
+	return &OrmResult{Res: res}
 }
 
-func findMulti[T any](ctx context.Context, statementCtx *StatementContext, orm orm) ([]*T, error) {
-	handleFunc := func(innerCtx context.Context, innerStatementCtx *StatementContext) *StatementResult {
-		return findMultiHF[T](innerCtx, innerStatementCtx, orm)
+func findMulti[T any](ctx context.Context, ormCtx *OrmContext, orm orm) ([]*T, error) {
+	handleFunc := func(innerCtx context.Context, innerOrmCtx *OrmContext) *OrmResult {
+		return findMultiHF[T](innerCtx, innerOrmCtx, orm)
 	}
 
 	core := orm.getCore()
@@ -103,30 +103,30 @@ func findMulti[T any](ctx context.Context, statementCtx *StatementContext, orm o
 		handleFunc = core.middlewareChain[i](handleFunc)
 	}
 
-	sr := handleFunc(ctx, statementCtx)
+	sr := handleFunc(ctx, ormCtx)
 	if sr.Err != nil {
 		return nil, sr.Err
 	}
 	return sr.Res.([]*T), nil
 }
 
-func execHF(ctx context.Context, statementCtx *StatementContext, orm orm) *StatementResult {
+func execHF(ctx context.Context, statementCtx *OrmContext, orm orm) *OrmResult {
 	statement, err := statementCtx.Builder.Build()
 	if err != nil {
-		return &StatementResult{Err: err}
+		return &OrmResult{Err: err}
 	}
 
 	res, err := orm.execContext(ctx, statement.SQL, statement.Args...)
 	if err != nil {
-		return &StatementResult{Err: err}
+		return &OrmResult{Err: err}
 	}
 
-	return &StatementResult{Res: res}
+	return &OrmResult{Res: res}
 }
 
-func exec(ctx context.Context, statementCtx *StatementContext, orm orm) Result {
-	handleFunc := func(innerCtx context.Context, innerStatementCtx *StatementContext) *StatementResult {
-		return execHF(innerCtx, innerStatementCtx, orm)
+func exec(ctx context.Context, ormCtx *OrmContext, orm orm) Result {
+	handleFunc := func(innerCtx context.Context, innerOrmCtx *OrmContext) *OrmResult {
+		return execHF(innerCtx, innerOrmCtx, orm)
 	}
 
 	core := orm.getCore()
@@ -134,7 +134,7 @@ func exec(ctx context.Context, statementCtx *StatementContext, orm orm) Result {
 		handleFunc = core.middlewareChain[i](handleFunc)
 	}
 
-	sr := handleFunc(ctx, statementCtx)
+	sr := handleFunc(ctx, ormCtx)
 	if sr.Res == nil {
 		return Result{err: sr.Err}
 	}
@@ -142,4 +142,14 @@ func exec(ctx context.Context, statementCtx *StatementContext, orm orm) Result {
 	return Result{
 		res: sr.Res.(sql.Result),
 	}
+}
+
+type OrmContext struct {
+	Typ     string
+	Builder StatementBuilder
+}
+
+type OrmResult struct {
+	Res any
+	Err error
 }

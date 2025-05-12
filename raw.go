@@ -14,14 +14,14 @@ type Raw[T any] struct {
 }
 
 func (r *Raw[T]) FindOne(ctx context.Context) (*T, error) {
-	return findOne[T](ctx, &StatementContext{
+	return findOne[T](ctx, &OrmContext{
 		Typ:     ScTypRaw,
 		Builder: r,
 	}, r.orm)
 }
 
 func (r *Raw[T]) FindMulti(ctx context.Context) ([]*T, error) {
-	return findMulti[T](ctx, &StatementContext{
+	return findMulti[T](ctx, &OrmContext{
 		Typ:     ScTypRaw,
 		Builder: r,
 	}, r.orm)
@@ -35,7 +35,7 @@ func (r *Raw[T]) Build() (*Statement, error) {
 }
 
 func (r *Raw[T]) Exec(ctx context.Context) Result {
-	return exec(ctx, &StatementContext{
+	return exec(ctx, &OrmContext{
 		Typ:     ScTypRaw,
 		Builder: r,
 	}, r.orm)

@@ -34,14 +34,14 @@ func (s *Selector[T]) FindOne(ctx context.Context) (*T, error) {
 		s.limit = 1
 	}
 
-	return findOne[T](ctx, &StatementContext{
+	return findOne[T](ctx, &OrmContext{
 		Typ:     ScTypSELECT,
 		Builder: s,
 	}, s.orm)
 }
 
 func (s *Selector[T]) FindMulti(ctx context.Context) ([]*T, error) {
-	return findMulti[T](ctx, &StatementContext{
+	return findMulti[T](ctx, &OrmContext{
 		Typ:     ScTypSELECT,
 		Builder: s,
 	}, s.orm)
