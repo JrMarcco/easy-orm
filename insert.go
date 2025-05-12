@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/JrMarcco/easy-orm/internal/errs"
+	"github.com/JrMarcco/easy-orm/model"
 )
 
 var _ Executor[any] = (*Inserter[any])(nil)
@@ -11,8 +12,11 @@ var _ Executor[any] = (*Inserter[any])(nil)
 type Inserter[T any] struct {
 	builder
 
-	orm  orm
-	rows []*T
+	orm    orm
+	rows   []*T
+	fields []string
+
+	conflict *Conflict
 }
 
 func (i *Inserter[T]) Exec(ctx context.Context) Result {
@@ -23,6 +27,22 @@ func (i *Inserter[T]) Exec(ctx context.Context) Result {
 func (i *Inserter[T]) Insert(rows ...*T) *Inserter[T] {
 	i.rows = rows
 	return i
+}
+
+func (i *Inserter[T]) Fields(fields ...string) *Inserter[T] {
+	i.fields = fields
+	return i
+}
+
+func (i *Inserter[T]) OnConflict(conflicts ...string) *OnConflictBuilder[T] {
+	ocb := &OnConflictBuilder[T]{
+		inserter: i,
+	}
+
+	if len(conflicts) > 0 {
+		ocb.conflicts = conflicts
+	}
+	return ocb
 }
 
 func (i *Inserter[T]) Build() (*Statement, error) {
@@ -36,6 +56,12 @@ func (i *Inserter[T]) Build() (*Statement, error) {
 
 	if err = i.buildInsertColumns(); err != nil {
 		return nil, err
+	}
+
+	if i.conflict != nil {
+		if err = i.dialect.onConflict(&i.builder, i.conflict); err != nil {
+			return nil, err
+		}
 	}
 
 	i.sqlBuffer.WriteByte(';')
@@ -52,6 +78,17 @@ func (i *Inserter[T]) buildInsertColumns() error {
 	}
 	fields := i.model.SeqFields
 
+	if len(i.fields) > 0 {
+		fields = make([]*model.Field, 0, len(i.fields))
+		for _, f := range i.fields {
+			field, ok := i.model.Fields[f]
+			if !ok {
+				return errs.ErrInvalidField(f)
+			}
+			fields = append(fields, field)
+		}
+	}
+
 	i.sqlBuffer.WriteString(" (")
 	for index, field := range fields {
 		if index > 0 {
@@ -62,14 +99,13 @@ func (i *Inserter[T]) buildInsertColumns() error {
 	}
 	i.sqlBuffer.WriteString(") VALUES ")
 
-	args := make([]any, len(fields)*len(i.rows))
+	i.args = make([]any, 0, len(fields)*len(i.rows))
 	for rowIndex, row := range i.rows {
 		if rowIndex > 0 {
 			i.sqlBuffer.WriteString(", ")
 		}
 
 		i.sqlBuffer.WriteByte('(')
-
 		resolver := i.orm.getCore().resolverCreator(i.model, row)
 		for fieldIndex, field := range fields {
 			if fieldIndex > 0 {
@@ -80,13 +116,11 @@ func (i *Inserter[T]) buildInsertColumns() error {
 			if err != nil {
 				return err
 			}
-
-			args = append(args, val)
+			i.args = append(i.args, val)
 			i.dialect.bindArg(&i.builder)
 		}
 		i.sqlBuffer.WriteByte(')')
 	}
-
 	return nil
 }
 
@@ -95,4 +129,17 @@ func NewInserter[T any](orm orm) *Inserter[T] {
 		builder: newBuilder(orm),
 		orm:     orm,
 	}
+}
+
+type OnConflictBuilder[T any] struct {
+	inserter  *Inserter[T]
+	conflicts []string
+}
+
+func (o *OnConflictBuilder[T]) Update(assigns ...Assignable) *Inserter[T] {
+	o.inserter.conflict = &Conflict{
+		conflicts: o.conflicts,
+		assigns:   assigns,
+	}
+	return o.inserter
 }

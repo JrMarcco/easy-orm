@@ -6,10 +6,12 @@ import (
 )
 
 var (
-	ErrInvalidModelType  = errors.New("[easy-orm] invalid model entity type, only support struct or pointer to struct")
-	ErrEligibleRow       = errors.New("[easy-orm] eligible row not found")
-	ErrUnsafeDelete      = errors.New("[easy-orm] unsafe delete")
-	ErrInsertWithoutRows = errors.New("[easy-orm] insert without rows")
+	ErrInvalidModelType      = errors.New("[easy-orm] invalid model entity type, only support struct or pointer to struct")
+	ErrEligibleRow           = errors.New("[easy-orm] eligible row not found")
+	ErrUnsafeDelete          = errors.New("[easy-orm] unsafe delete")
+	ErrInsertWithoutRows     = errors.New("[easy-orm] insert without rows")
+	ErrUnsupportedOnConflict = errors.New("[easy-orm] unsupported on conflict in standard sql")
+	ErrInvalidAssignable     = errors.New("[easy-orm] invalid assignable")
 )
 
 func ErrUnsupportedExpr(expr any) error {

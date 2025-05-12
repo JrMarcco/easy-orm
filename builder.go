@@ -155,10 +155,10 @@ func (b *builder) addArgs(val ...any) {
 	b.args = append(b.args, val...)
 }
 
-func newBuilder(session orm) builder {
-	dialect := session.getCore().dialect
+func newBuilder(orm orm) builder {
+	dialect := orm.getCore().dialect
 	return builder{
-		registry:  session.getCore().registry,
+		registry:  orm.getCore().registry,
 		dialect:   dialect,
 		quote:     dialect.quote(),
 		sqlBuffer: strings.Builder{},

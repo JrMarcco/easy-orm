@@ -2,6 +2,7 @@ package easyorm
 
 var _ selectable = (*Column)(nil)
 var _ Expression = (*Column)(nil)
+var _ Assignable = (*Column)(nil)
 
 type Column struct {
 	fieldName string
@@ -10,6 +11,7 @@ type Column struct {
 
 func (c Column) selectable() {}
 func (c Column) expr()       {}
+func (c Column) assign()     {}
 
 func (c Column) As(alias string) Column {
 	return Column{

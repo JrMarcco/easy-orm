@@ -63,7 +63,7 @@ func (db *DB) DoTx(ctx context.Context, bizFunc func(ctx context.Context, tx *Tx
 
 type DBOpt func(db *DB)
 
-func DBWithDialect(dialect mysql) DBOpt {
+func DBWithDialect(dialect Dialect) DBOpt {
 	return func(db *DB) {
 		db.dialect = dialect
 	}
