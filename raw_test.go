@@ -171,3 +171,68 @@ func TestRaw_FindMulti(t *testing.T) {
 		})
 	}
 }
+
+func TestRaw_Exec(t *testing.T) {
+	mockDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() {
+		_ = mockDB.Close()
+	}()
+
+	db, err := OpenDB(mockDB, DBWithDialect(MySQLDialect))
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name    string
+		raw     *Raw[rawTestModel]
+		wantRes int64
+		wantErr error
+	}{
+		{
+			name: "basic",
+			raw: func() *Raw[rawTestModel] {
+				mock.ExpectExec("INSERT INTO raw_test_model.*").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				return NewRaw[rawTestModel](
+					db,
+					"INSERT INTO raw_test_model (id, name) VALUES (?, ?)",
+					uint64(1),
+					&sql.NullString{
+						String: "foo",
+						Valid:  true,
+					},
+				)
+			}(),
+			wantRes: 1,
+		}, {
+			name: "db error",
+			raw: func() *Raw[rawTestModel] {
+				mock.ExpectExec("INSERT INTO raw_test_model.*").
+					WillReturnError(errors.New("mock error"))
+
+				return NewRaw[rawTestModel](
+					db,
+					"INSERT INTO raw_test_model (id, name) VALUES (?, ?)",
+					uint64(1),
+					&sql.NullString{
+						String: "foo",
+						Valid:  true,
+					})
+			}(),
+			wantErr: errors.New("mock error"),
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			res := tc.raw.Exec(context.Background())
+			assert.Equal(t, tc.wantErr, res.Err())
+
+			if res.Err() == nil {
+				assert.Equal(t, tc.wantRes, res.RowsAffected())
+			}
+		})
+	}
+
+}

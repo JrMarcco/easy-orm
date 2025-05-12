@@ -8,23 +8,23 @@ var _ Executor[any] = (*Raw[any])(nil)
 type Raw[T any] struct {
 	builder
 
-	session orm
-	sql     string
-	args    []any
+	orm  orm
+	sql  string
+	args []any
 }
 
 func (r *Raw[T]) FindOne(ctx context.Context) (*T, error) {
 	return findOne[T](ctx, &StatementContext{
 		Typ:     ScTypRaw,
 		Builder: r,
-	}, r.session)
+	}, r.orm)
 }
 
 func (r *Raw[T]) FindMulti(ctx context.Context) ([]*T, error) {
 	return findMulti[T](ctx, &StatementContext{
 		Typ:     ScTypRaw,
 		Builder: r,
-	}, r.session)
+	}, r.orm)
 }
 
 func (r *Raw[T]) Build() (*Statement, error) {
@@ -35,14 +35,16 @@ func (r *Raw[T]) Build() (*Statement, error) {
 }
 
 func (r *Raw[T]) Exec(ctx context.Context) Result {
-	//TODO implement me
-	panic("implement me")
+	return exec(ctx, &StatementContext{
+		Typ:     ScTypRaw,
+		Builder: r,
+	}, r.orm)
 }
 
 func NewRaw[T any](session orm, sql string, args ...any) *Raw[T] {
 	return &Raw[T]{
 		builder: newBuilder(session),
-		session: session,
+		orm:     session,
 		sql:     sql,
 		args:    args,
 	}

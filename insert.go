@@ -20,11 +20,13 @@ type Inserter[T any] struct {
 }
 
 func (i *Inserter[T]) Exec(ctx context.Context) Result {
-	//TODO implement me
-	panic("implement me")
+	return exec(ctx, &StatementContext{
+		Typ:     ScTypINSERT,
+		Builder: i,
+	}, i.orm)
 }
 
-func (i *Inserter[T]) Insert(rows ...*T) *Inserter[T] {
+func (i *Inserter[T]) Rows(rows ...*T) *Inserter[T] {
 	i.rows = rows
 	return i
 }
@@ -34,6 +36,8 @@ func (i *Inserter[T]) Fields(fields ...string) *Inserter[T] {
 	return i
 }
 
+// OnConflict upsert support.
+// conflicts only supported on postgres, conflicts are field in entity, not columns in db table.
 func (i *Inserter[T]) OnConflict(conflicts ...string) *OnConflictBuilder[T] {
 	ocb := &OnConflictBuilder[T]{
 		inserter: i,
