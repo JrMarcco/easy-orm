@@ -12,6 +12,7 @@ var (
 	ErrInsertWithoutRows     = errors.New("[easy-orm] insert without rows")
 	ErrUnsupportedOnConflict = errors.New("[easy-orm] unsupported on conflict in standard sql")
 	ErrInvalidAssignable     = errors.New("[easy-orm] invalid assignable")
+	ErrHavingWithoutGroupBy  = errors.New("[easy-orm] having without group by")
 )
 
 func ErrUnsupportedExpr(expr any) error {

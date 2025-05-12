@@ -194,6 +194,94 @@ func TestSelector_Build(t *testing.T) {
 				SQL:  "SELECT * FROM `select_test_model` WHERE `id` = (`id` + ?);",
 				Args: []any{1},
 			},
+		}, {
+			name:     "with limit",
+			selector: NewSelector[selectTestModel](db).Limit(1),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` LIMIT 1;",
+			},
+		}, {
+			name:     "with offset",
+			selector: NewSelector[selectTestModel](db).Offset(10),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` OFFSET 10;",
+			},
+		}, {
+			name:     "with limit and offset",
+			selector: NewSelector[selectTestModel](db).Limit(1).Offset(10),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` LIMIT 1 OFFSET 10;",
+			},
+		}, {
+			name: "with group by",
+			selector: NewSelector[selectTestModel](db).
+				GroupBy(Col("Id"), Col("Age")).
+				Where(Col("Id").Eq(1)),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` WHERE `id` = ? GROUP BY `id`, `age`;",
+				Args: []any{
+					1,
+				},
+			},
+		}, {
+			name:     "with having without group by",
+			selector: NewSelector[selectTestModel](db).Having(Col("Id").Eq(1)),
+			wantErr:  errs.ErrHavingWithoutGroupBy,
+		}, {
+			name: "with having",
+			selector: NewSelector[selectTestModel](db).
+				Where(Col("Id").Eq(1)).
+				GroupBy(Col("Age")).
+				Having(Col("Age").Eq(18)),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` WHERE `id` = ? GROUP BY `age` HAVING `age` = ?;",
+				Args: []any{
+					1, 18,
+				},
+			},
+		}, {
+			name:     "with single asc",
+			selector: NewSelector[selectTestModel](db).OrderBy(Asc(Col("Id"))),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` ASC;",
+			},
+		}, {
+			name:     "with single desc",
+			selector: NewSelector[selectTestModel](db).OrderBy(Desc(Col("Id"))),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` DESC;",
+			},
+		}, {
+			name:     "with multiple asc",
+			selector: NewSelector[selectTestModel](db).OrderBy(Asc(Col("Id")), Asc(Col("Age"))),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` ASC, `age` ASC;",
+			},
+		}, {
+			name:     "with multiple desc",
+			selector: NewSelector[selectTestModel](db).OrderBy(Desc(Col("Id")), Desc(Col("Age"))),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` DESC, `age` DESC;",
+			},
+		}, {
+			name: "with single asc and desc",
+			selector: NewSelector[selectTestModel](db).OrderBy(
+				Asc(Col("Id")),
+				Desc(Col("Age")),
+			),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` ASC, `age` DESC;",
+			},
+		}, {
+			name: "with multiple asc and desc",
+			selector: NewSelector[selectTestModel](db).OrderBy(
+				Asc(Col("Id")),
+				Desc(Col("Age")),
+				Asc(Col("Name")),
+			),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` ORDER BY `id` ASC, `age` DESC, `name` ASC;",
+			},
 		},
 	}
 

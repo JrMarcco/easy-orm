@@ -2,6 +2,9 @@ package easyorm
 
 import (
 	"context"
+	"strconv"
+
+	"github.com/JrMarcco/easy-orm/internal/errs"
 )
 
 // selectable marker interface, used to identify optional query columns( e.g., columns, aggregate functions ).
@@ -21,6 +24,9 @@ type Selector[T any] struct {
 
 	selectables []selectable
 	where       []Condition
+	having      []Condition
+	groupBy     []Column
+	orderBy     []OrderBy
 }
 
 func (s *Selector[T]) FindOne(ctx context.Context) (*T, error) {
@@ -59,6 +65,28 @@ func (s *Selector[T]) Where(pds ...Predicate) *Selector[T] {
 	return s
 }
 
+func (s *Selector[T]) GroupBy(cols ...Column) *Selector[T] {
+	s.groupBy = cols
+	return s
+}
+
+func (s *Selector[T]) Having(pds ...Predicate) *Selector[T] {
+	if len(pds) == 0 {
+		return s
+	}
+
+	if s.having == nil {
+		s.having = make([]Condition, 0, 4)
+	}
+	s.having = append(s.having, NewCondition(condTypHaving, pds))
+	return s
+}
+
+func (s *Selector[T]) OrderBy(orderBys ...OrderBy) *Selector[T] {
+	s.orderBy = orderBys
+	return s
+}
+
 func (s *Selector[T]) Limit(limit int64) *Selector[T] {
 	s.limit = limit
 	return s
@@ -84,9 +112,49 @@ func (s *Selector[T]) Build() (*Statement, error) {
 	s.writeTable()
 
 	if len(s.where) > 0 {
-		if err = s.buildConditions(); err != nil {
+		if err = s.buildConditions(s.where); err != nil {
 			return nil, err
 		}
+	}
+
+	if len(s.groupBy) > 0 {
+		s.sqlBuffer.WriteString(" GROUP BY ")
+		for index, col := range s.groupBy {
+			field, ok := s.model.Fields[col.fieldName]
+			if !ok {
+				return nil, errs.ErrInvalidField(col.fieldName)
+			}
+
+			if index > 0 {
+				s.sqlBuffer.WriteString(", ")
+			}
+			s.writeWithQuote(field.ColumnName)
+		}
+	}
+
+	if len(s.having) > 0 {
+		if len(s.groupBy) == 0 {
+			return nil, errs.ErrHavingWithoutGroupBy
+		}
+		if err = s.buildConditions(s.having); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(s.orderBy) > 0 {
+		if err = s.buildOrderBy(); err != nil {
+			return nil, err
+		}
+	}
+
+	if s.limit > 0 {
+		s.sqlBuffer.WriteString(" LIMIT ")
+		s.sqlBuffer.WriteString(strconv.FormatInt(s.limit, 10))
+	}
+
+	if s.offset > -1 {
+		s.sqlBuffer.WriteString(" OFFSET ")
+		s.sqlBuffer.WriteString(strconv.FormatInt(s.offset, 10))
 	}
 
 	s.sqlBuffer.WriteByte(';')
@@ -111,14 +179,64 @@ func (s *Selector[T]) buildSelectedColumns() error {
 			return err
 		}
 	}
-
 	return nil
 }
 
-func (s *Selector[T]) buildConditions() error {
-	for _, c := range s.where {
-		s.sqlBuffer.WriteString(c.typ.String())
+func (s *Selector[T]) buildOrderBy() error {
+	if len(s.orderBy) == 0 {
+		return nil
+	}
 
+	s.sqlBuffer.WriteString(" ORDER BY ")
+	for index, ob := range s.orderBy {
+		if index > 0 {
+			s.sqlBuffer.WriteString(", ")
+		}
+
+		field, ok := s.model.Fields[ob.column.fieldName]
+		if !ok {
+			return errs.ErrInvalidField(ob.column.fieldName)
+		}
+		s.writeWithQuote(field.ColumnName)
+		s.sqlBuffer.WriteString(" ")
+		s.sqlBuffer.WriteString(ob.typ.String())
+	}
+	return nil
+}
+
+type orderTyp string
+
+const (
+	orderAsc  orderTyp = "ASC"
+	orderDesc orderTyp = "DESC"
+)
+
+func (o orderTyp) String() string {
+	return string(o)
+}
+
+type OrderBy struct {
+	column Column
+	typ    orderTyp
+}
+
+func Asc(column Column) OrderBy {
+	return OrderBy{
+		column: column,
+		typ:    orderAsc,
+	}
+}
+
+func Desc(column Column) OrderBy {
+	return OrderBy{
+		column: column,
+		typ:    orderDesc,
+	}
+}
+
+func (s *Selector[T]) buildConditions(conditions []Condition) error {
+	for _, c := range conditions {
+		s.sqlBuffer.WriteString(c.typ.String())
 		if err := s.buildExpr(c.expr); err != nil {
 			return err
 		}
