@@ -68,6 +68,22 @@ func (c Column) Le(val any) Predicate {
 	}
 }
 
+func (c Column) In(vals ...any) Predicate {
+	return Predicate{
+		left:  c,
+		op:    opIn,
+		right: valueOf(vals),
+	}
+}
+
+func (c Column) InQuery(subQuery SubQuery) Predicate {
+	return Predicate{
+		left:  c,
+		op:    opIn,
+		right: subQuery,
+	}
+}
+
 // Col create a column expression.
 //
 // fieldName is the field name of the model.

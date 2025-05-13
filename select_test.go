@@ -294,6 +294,15 @@ func TestSelector_Build(t *testing.T) {
 			wantStatement: &Statement{
 				SQL: "SELECT * FROM `from_model`;",
 			},
+		}, {
+			name:     "with where in",
+			selector: NewSelector[selectTestModel](db).Where(Col("Id").In(1, 2, 3)),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `select_test_model` WHERE `id` IN (?,?,?);",
+				Args: []any{
+					1, 2, 3,
+				},
+			},
 		},
 	}
 
@@ -304,151 +313,6 @@ func TestSelector_Build(t *testing.T) {
 
 			if err == nil {
 				assert.Equal(t, tc.wantStatement, statement)
-			}
-		})
-	}
-}
-
-func TestSelector_FindOne(t *testing.T) {
-	mockDB, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer func() {
-		_ = mockDB.Close()
-	}()
-
-	db, err := OpenDB(mockDB, MySQLDialect)
-	require.NoError(t, err)
-
-	tcs := []struct {
-		name     string
-		mockFunc func()
-		selector *Selector[selectTestModel]
-		wantRes  *selectTestModel
-		wantErr  error
-	}{
-		{
-			name: "basic",
-			mockFunc: func() {
-				rows := sqlmock.NewRows([]string{"id", "name", "age", "nick_name"})
-				rows.AddRow(1, "foo", 18, "bar")
-
-				mock.ExpectQuery("SELECT *.").WillReturnRows(rows)
-			},
-			selector: NewSelector[selectTestModel](db),
-			wantRes: &selectTestModel{
-				Id:       1,
-				Name:     "foo",
-				Age:      18,
-				NickName: &sql.NullString{String: "bar", Valid: true},
-			},
-		}, {
-			name: "with args",
-			mockFunc: func() {
-				rows := sqlmock.NewRows([]string{"id", "name", "age", "nick_name"})
-				rows.AddRow(1, "foo", 18, "bar")
-
-				mock.ExpectQuery("SELECT *.").WithArgs(1, "foo").WillReturnRows(rows)
-			},
-			selector: NewSelector[selectTestModel](db).
-				Where(
-					Col("Id").Eq(1),
-					Col("Name").Eq("foo"),
-				),
-			wantRes: &selectTestModel{
-				Id:       1,
-				Name:     "foo",
-				Age:      18,
-				NickName: &sql.NullString{String: "bar", Valid: true},
-			},
-		}, {
-			name: "returns error",
-			mockFunc: func() {
-				mock.ExpectQuery("SELECT *.").WillReturnError(errors.New("mock error"))
-			},
-			selector: NewSelector[selectTestModel](db),
-			wantErr:  errors.New("mock error"),
-		},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			tc.mockFunc()
-
-			var res *selectTestModel
-			res, err = tc.selector.FindOne(context.Background())
-			assert.Equal(t, tc.wantErr, err)
-			if err == nil {
-				assert.Equal(t, tc.wantRes, res)
-			}
-		})
-	}
-}
-
-func TestSelector_FindMulti(t *testing.T) {
-	mockDB, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer func() {
-		_ = mockDB.Close()
-	}()
-
-	db, err := OpenDB(mockDB, MySQLDialect)
-	require.NoError(t, err)
-
-	tcs := []struct {
-		name     string
-		mockFunc func()
-		selector *Selector[selectTestModel]
-		wantRes  []*selectTestModel
-		wantErr  error
-	}{
-		{
-			name: "basic",
-			mockFunc: func() {
-				rows := sqlmock.NewRows([]string{"id", "name", "age", "nick_name"})
-				rows.AddRow(1, "foo", 18, "bar")
-				rows.AddRow(2, "bar", 12, "foo")
-				rows.AddRow(3, "baz", 10, "baz")
-
-				mock.ExpectQuery("SELECT *.").WillReturnRows(rows)
-			},
-			selector: NewSelector[selectTestModel](db),
-			wantRes: []*selectTestModel{
-				{
-					Id:       1,
-					Name:     "foo",
-					Age:      18,
-					NickName: &sql.NullString{String: "bar", Valid: true},
-				}, {
-					Id:       2,
-					Name:     "bar",
-					Age:      12,
-					NickName: &sql.NullString{String: "foo", Valid: true},
-				}, {
-					Id:       3,
-					Name:     "baz",
-					Age:      10,
-					NickName: &sql.NullString{String: "baz", Valid: true},
-				},
-			},
-		}, {
-			name: "returns error",
-			mockFunc: func() {
-				mock.ExpectQuery("SELECT *.").WillReturnError(errors.New("mock error"))
-			},
-			selector: NewSelector[selectTestModel](db),
-			wantErr:  errors.New("mock error"),
-		},
-	}
-
-	for _, tc := range tcs {
-		t.Run(tc.name, func(t *testing.T) {
-			tc.mockFunc()
-
-			var res []*selectTestModel
-			res, err = tc.selector.FindMulti(context.Background())
-			assert.Equal(t, tc.wantErr, err)
-			if err == nil {
-				assert.Equal(t, tc.wantRes, res)
 			}
 		})
 	}
@@ -608,6 +472,206 @@ func TestSelector_Join(t *testing.T) {
 
 			if err == nil {
 				assert.Equal(t, tc.wantRes, statement)
+			}
+		})
+	}
+}
+
+func TestSelector_SubQuery(t *testing.T) {
+	db, err := OpenDB(&sql.DB{}, MySQLDialect)
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name     string
+		selector *Selector[selectTestModel]
+		wantRes  *Statement
+		wantErr  error
+	}{
+		{
+			name: "select from sub query",
+			selector: func() *Selector[selectTestModel] {
+				subQuery := NewSelector[selectTestModel](db).ToSubQuery().As("s")
+				return NewSelector[selectTestModel](db).From(subQuery)
+			}(),
+			wantRes: &Statement{
+				SQL: "SELECT * FROM (SELECT * FROM `select_test_model`) AS `s`;",
+			},
+		}, {
+			name: "select from sub query with where",
+			selector: func() *Selector[selectTestModel] {
+				subQuery := NewSelector[selectTestModel](db).ToSubQuery().As("s")
+
+				return NewSelector[selectTestModel](db).From(subQuery).Where(subQuery.Col("Id").Eq(1))
+			}(),
+			wantRes: &Statement{
+				SQL:  "SELECT * FROM (SELECT * FROM `select_test_model`) AS `s` WHERE `s`.`id` = ?;",
+				Args: []any{1},
+			},
+		}, {
+			name: "select from sub query with in",
+			selector: func() *Selector[selectTestModel] {
+				subQuery := NewSelector[selectTestModel](db).Select(Col("Id")).ToSubQuery()
+
+				return NewSelector[selectTestModel](db).Where(Col("Id").InQuery(subQuery))
+			}(),
+			wantRes: &Statement{
+				SQL: "SELECT * FROM `select_test_model` WHERE `id` IN (SELECT `id` FROM `select_test_model`);",
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			statement, err := tc.selector.Build()
+			assert.Equal(t, tc.wantErr, err)
+
+			if err == nil {
+				assert.Equal(t, tc.wantRes, statement)
+			}
+		})
+	}
+}
+
+func TestSelector_FindOne(t *testing.T) {
+	mockDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() {
+		_ = mockDB.Close()
+	}()
+
+	db, err := OpenDB(mockDB, MySQLDialect)
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name     string
+		mockFunc func()
+		selector *Selector[selectTestModel]
+		wantRes  *selectTestModel
+		wantErr  error
+	}{
+		{
+			name: "basic",
+			mockFunc: func() {
+				rows := sqlmock.NewRows([]string{"id", "name", "age", "nick_name"})
+				rows.AddRow(1, "foo", 18, "bar")
+
+				mock.ExpectQuery("SELECT *.").WillReturnRows(rows)
+			},
+			selector: NewSelector[selectTestModel](db),
+			wantRes: &selectTestModel{
+				Id:       1,
+				Name:     "foo",
+				Age:      18,
+				NickName: &sql.NullString{String: "bar", Valid: true},
+			},
+		}, {
+			name: "with args",
+			mockFunc: func() {
+				rows := sqlmock.NewRows([]string{"id", "name", "age", "nick_name"})
+				rows.AddRow(1, "foo", 18, "bar")
+
+				mock.ExpectQuery("SELECT *.").WithArgs(1, "foo").WillReturnRows(rows)
+			},
+			selector: NewSelector[selectTestModel](db).
+				Where(
+					Col("Id").Eq(1),
+					Col("Name").Eq("foo"),
+				),
+			wantRes: &selectTestModel{
+				Id:       1,
+				Name:     "foo",
+				Age:      18,
+				NickName: &sql.NullString{String: "bar", Valid: true},
+			},
+		}, {
+			name: "returns error",
+			mockFunc: func() {
+				mock.ExpectQuery("SELECT *.").WillReturnError(errors.New("mock error"))
+			},
+			selector: NewSelector[selectTestModel](db),
+			wantErr:  errors.New("mock error"),
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockFunc()
+
+			var res *selectTestModel
+			res, err = tc.selector.FindOne(context.Background())
+			assert.Equal(t, tc.wantErr, err)
+			if err == nil {
+				assert.Equal(t, tc.wantRes, res)
+			}
+		})
+	}
+}
+
+func TestSelector_FindMulti(t *testing.T) {
+	mockDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() {
+		_ = mockDB.Close()
+	}()
+
+	db, err := OpenDB(mockDB, MySQLDialect)
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name     string
+		mockFunc func()
+		selector *Selector[selectTestModel]
+		wantRes  []*selectTestModel
+		wantErr  error
+	}{
+		{
+			name: "basic",
+			mockFunc: func() {
+				rows := sqlmock.NewRows([]string{"id", "name", "age", "nick_name"})
+				rows.AddRow(1, "foo", 18, "bar")
+				rows.AddRow(2, "bar", 12, "foo")
+				rows.AddRow(3, "baz", 10, "baz")
+
+				mock.ExpectQuery("SELECT *.").WillReturnRows(rows)
+			},
+			selector: NewSelector[selectTestModel](db),
+			wantRes: []*selectTestModel{
+				{
+					Id:       1,
+					Name:     "foo",
+					Age:      18,
+					NickName: &sql.NullString{String: "bar", Valid: true},
+				}, {
+					Id:       2,
+					Name:     "bar",
+					Age:      12,
+					NickName: &sql.NullString{String: "foo", Valid: true},
+				}, {
+					Id:       3,
+					Name:     "baz",
+					Age:      10,
+					NickName: &sql.NullString{String: "baz", Valid: true},
+				},
+			},
+		}, {
+			name: "returns error",
+			mockFunc: func() {
+				mock.ExpectQuery("SELECT *.").WillReturnError(errors.New("mock error"))
+			},
+			selector: NewSelector[selectTestModel](db),
+			wantErr:  errors.New("mock error"),
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockFunc()
+
+			var res []*selectTestModel
+			res, err = tc.selector.FindMulti(context.Background())
+			assert.Equal(t, tc.wantErr, err)
+			if err == nil {
+				assert.Equal(t, tc.wantRes, res)
 			}
 		})
 	}

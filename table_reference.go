@@ -141,18 +141,32 @@ func (b *JoinBuilder) Using(cols ...Column) Join {
 }
 
 var _ selectable = (*SubQuery)(nil)
+var _ Expression = (*SubQuery)(nil)
 var _ TableRef = (*SubQuery)(nil)
 
 type SubQuery struct {
-	builder  StatementBuilder
-	tableRef TableRef
-	alias    string
+	builder StatementBuilder
+
+	tableRef    TableRef
+	selectables []selectable
+
+	alias string
 }
 
 func (s SubQuery) selectable() {}
+func (s SubQuery) expr()       {}
 
 func (s SubQuery) tableAlias() string {
 	return s.alias
+}
+
+func (s SubQuery) As(alias string) SubQuery {
+	return SubQuery{
+		builder:     s.builder,
+		tableRef:    s.tableRef,
+		selectables: s.selectables,
+		alias:       alias,
+	}
 }
 
 func (s SubQuery) Col(fieldName string) Column {

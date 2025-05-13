@@ -91,8 +91,11 @@ func (b *builder) buildExpr(expr Expression) error {
 			return err
 		}
 	case columnValue:
-		b.addArgs(exprTyp.value)
-		b.dialect.bindArg(b)
+		b.buildColumnValue(exprTyp.value)
+	case SubQuery:
+		if err := b.buildSubQuery(exprTyp); err != nil {
+			return err
+		}
 	case RawExpression:
 		b.sqlBuffer.WriteString(exprTyp.raw)
 		b.addArgs(exprTyp.args...)
@@ -121,6 +124,68 @@ func (b *builder) buildColumn(tableRef TableRef, fieldName string) error {
 	return nil
 }
 
+func (b *builder) buildColumnValue(value any) {
+	vals, ok := value.([]any)
+	if ok {
+		// where in ()
+		b.sqlBuffer.WriteByte('(')
+		for i, v := range vals {
+			if i > 0 {
+				b.sqlBuffer.WriteByte(',')
+			}
+			b.addArgs(v)
+			b.dialect.bindArg(b)
+		}
+		b.sqlBuffer.WriteByte(')')
+		return
+	}
+
+	b.addArgs(value)
+	b.dialect.bindArg(b)
+}
+
+func (b *builder) buildAggregate(aggregate Aggregate) error {
+	field, ok := b.model.Fields[aggregate.fieldName]
+	if !ok {
+		return errs.ErrInvalidField(aggregate.fieldName)
+	}
+
+	b.sqlBuffer.WriteString(aggregate.funcName)
+	b.sqlBuffer.WriteByte('(')
+	b.writeWithQuote(field.ColumnName)
+	b.sqlBuffer.WriteByte(')')
+
+	if aggregate.alias != "" {
+		b.sqlBuffer.WriteString(" AS ")
+		b.writeWithQuote(aggregate.alias)
+	}
+
+	return nil
+}
+
+func (b *builder) buildSubQuery(subQ SubQuery) error {
+	statement, err := subQ.builder.Build()
+	if err != nil {
+		return err
+	}
+
+	b.sqlBuffer.WriteByte('(')
+	sql := statement.SQL
+	// remove ';' at the end of SQL
+	b.sqlBuffer.WriteString(sql[:len(sql)-1])
+	b.sqlBuffer.WriteByte(')')
+
+	if len(statement.Args) > 0 {
+		b.addArgs(statement.Args...)
+	}
+
+	if alias := subQ.tableAlias(); alias != "" {
+		b.sqlBuffer.WriteString(" AS ")
+		b.writeWithQuote(alias)
+	}
+	return nil
+}
+
 func (b *builder) columnName(tableRef TableRef, fieldName string) (string, error) {
 	switch refTyp := tableRef.(type) {
 	case nil:
@@ -146,27 +211,10 @@ func (b *builder) columnName(tableRef TableRef, fieldName string) (string, error
 			return b.columnName(refTyp.right, fieldName)
 		}
 		return columnName, nil
+	case SubQuery:
+		return b.columnName(refTyp.tableRef, fieldName)
 	}
 	return "", errs.ErrUnsupportedExpr(tableRef)
-}
-
-func (b *builder) buildAggregate(aggregate Aggregate) error {
-	field, ok := b.model.Fields[aggregate.fieldName]
-	if !ok {
-		return errs.ErrInvalidField(aggregate.fieldName)
-	}
-
-	b.sqlBuffer.WriteString(aggregate.funcName)
-	b.sqlBuffer.WriteByte('(')
-	b.writeWithQuote(field.ColumnName)
-	b.sqlBuffer.WriteByte(')')
-
-	if aggregate.alias != "" {
-		b.sqlBuffer.WriteString(" AS ")
-		b.writeWithQuote(aggregate.alias)
-	}
-
-	return nil
 }
 
 func (b *builder) addArgs(val ...any) {

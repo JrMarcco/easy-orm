@@ -46,6 +46,7 @@ const (
 	opAnd op = "AND"
 	opOr  op = "OR"
 	opNot op = "NOT"
+	opIn  op = "IN"
 )
 
 var _ Expression = (*Predicate)(nil)

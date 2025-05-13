@@ -13,6 +13,7 @@ type selectable interface {
 }
 
 var _ Querier[any] = (*Selector[any])(nil)
+var _ StatementBuilder = (*Selector[any])(nil)
 
 type Selector[T any] struct {
 	builder
@@ -119,6 +120,19 @@ func (s *Selector[T]) Offset(offset int64) *Selector[T] {
 	return s
 }
 
+func (s *Selector[T]) ToSubQuery() SubQuery {
+	tableRef := s.tableRef
+	if tableRef == nil {
+		tableRef = TableOf(new(T))
+	}
+
+	return SubQuery{
+		builder:     s,
+		tableRef:    tableRef,
+		selectables: s.selectables,
+	}
+}
+
 func (s *Selector[T]) Build() (*Statement, error) {
 	var err error
 	if s.model == nil {
@@ -208,6 +222,7 @@ func (s *Selector[T]) buildTable(tableRef TableRef) error {
 	case Join:
 		return s.buildJoin(refTyp)
 	case SubQuery:
+		return s.buildSubQuery(refTyp)
 	}
 	return nil
 }
