@@ -19,8 +19,9 @@ type Selector[T any] struct {
 
 	orm orm
 
-	limit  int64
-	offset int64
+	tableRef TableRef
+	limit    int64
+	offset   int64
 
 	selectables []selectable
 	where       []Condition
@@ -61,6 +62,11 @@ func (s *Selector[T]) initModel() error {
 	var err error
 	s.model, err = s.orm.getCore().registry.GetModel(new(T))
 	return err
+}
+
+func (s *Selector[T]) From(tableRef TableRef) *Selector[T] {
+	s.tableRef = tableRef
+	return s
 }
 
 func (s *Selector[T]) Select(selectables ...selectable) *Selector[T] {
@@ -122,12 +128,14 @@ func (s *Selector[T]) Build() (*Statement, error) {
 	}
 
 	s.sqlBuffer.WriteString("SELECT ")
-	if err = s.buildSelectedColumns(); err != nil {
+	if err = s.buildSelectables(); err != nil {
 		return nil, err
 	}
 	s.sqlBuffer.WriteString(" FROM ")
 
-	s.writeTable()
+	if err = s.buildTable(s.tableRef); err != nil {
+		return nil, err
+	}
 
 	if len(s.where) > 0 {
 		if err = s.buildConditions(s.where); err != nil {
@@ -182,7 +190,72 @@ func (s *Selector[T]) Build() (*Statement, error) {
 	}, nil
 }
 
-func (s *Selector[T]) buildSelectedColumns() error {
+func (s *Selector[T]) buildTable(tableRef TableRef) error {
+	switch refTyp := tableRef.(type) {
+	case nil:
+		s.writeTable()
+	case Table:
+		m, err := s.orm.getCore().registry.GetModel(refTyp.entity)
+		if err != nil {
+			return err
+		}
+		s.writeWithQuote(m.TableName)
+
+		if tableAlias := tableRef.tableAlias(); tableAlias != "" {
+			s.sqlBuffer.WriteString(" AS ")
+			s.writeWithQuote(tableAlias)
+		}
+	case Join:
+		return s.buildJoin(refTyp)
+	case SubQuery:
+	}
+	return nil
+}
+
+func (s *Selector[T]) buildJoin(join Join) error {
+	if err := s.buildTable(join.left); err != nil {
+		return err
+	}
+
+	s.sqlBuffer.WriteByte(' ')
+	s.sqlBuffer.WriteString(join.typ.String())
+	s.sqlBuffer.WriteByte(' ')
+
+	if err := s.buildTable(join.right); err != nil {
+		return err
+	}
+
+	if len(join.on) > 0 {
+		s.sqlBuffer.WriteString(" ON ")
+		for i, pd := range join.on {
+			if i > 0 {
+				s.sqlBuffer.WriteString(" AND ")
+			}
+			if err := s.buildExpr(pd); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(join.using) > 0 {
+		s.sqlBuffer.WriteString(" USING (")
+		for i, c := range join.using {
+			if i > 0 {
+				s.sqlBuffer.WriteString(", ")
+			}
+
+			columnName, err := s.columnName(c.tableRef, c.fieldName)
+			if err != nil {
+				return err
+			}
+			s.writeWithQuote(columnName)
+		}
+		s.sqlBuffer.WriteByte(')')
+	}
+	return nil
+}
+
+func (s *Selector[T]) buildSelectables() error {
 	if len(s.selectables) == 0 {
 		s.sqlBuffer.WriteByte('*')
 		return nil
@@ -192,9 +265,20 @@ func (s *Selector[T]) buildSelectedColumns() error {
 		if i > 0 {
 			s.sqlBuffer.WriteString(", ")
 		}
+		switch saTyp := sa.(type) {
+		case Column:
+			if err := s.buildColumn(saTyp.tableRef, saTyp.fieldName); err != nil {
+				return err
+			}
 
-		if err := s.buildSelectable(sa); err != nil {
-			return err
+			if saTyp.alias != "" {
+				s.sqlBuffer.WriteString(" AS ")
+				s.writeWithQuote(saTyp.alias)
+			}
+		case Aggregate:
+			if err := s.buildAggregate(saTyp); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

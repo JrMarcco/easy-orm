@@ -19,6 +19,8 @@ type selectTestModel struct {
 	NickName *sql.NullString
 }
 
+type fromModel struct{}
+
 func TestSelector_Build(t *testing.T) {
 	db, err := OpenDB(&sql.DB{}, MySQLDialect)
 	require.NoError(t, err)
@@ -103,7 +105,7 @@ func TestSelector_Build(t *testing.T) {
 				},
 			},
 		}, {
-			name: "with alias selectable",
+			name: "with tableAlias selectable",
 			selector: NewSelector[selectTestModel](db).
 				Select(
 					Col("Id"),
@@ -148,7 +150,7 @@ func TestSelector_Build(t *testing.T) {
 				SQL: "SELECT AVG(`age`) FROM `select_test_model`;",
 			},
 		}, {
-			name:     "with alias aggregate",
+			name:     "with tableAlias aggregate",
 			selector: NewSelector[selectTestModel](db).Select(Max("Age").As("max_age")),
 			wantStatement: &Statement{
 				SQL: "SELECT MAX(`age`) AS `max_age` FROM `select_test_model`;",
@@ -286,6 +288,12 @@ func TestSelector_Build(t *testing.T) {
 			name:     "with invalid order",
 			selector: NewSelector[insertTestModel](db).OrderBy(Asc("InvalidColumn")),
 			wantErr:  errs.ErrInvalidField("InvalidColumn"),
+		}, {
+			name:     "with from",
+			selector: NewSelector[insertTestModel](db).From(TableOf(fromModel{})),
+			wantStatement: &Statement{
+				SQL: "SELECT * FROM `from_model`;",
+			},
 		},
 	}
 
@@ -441,6 +449,165 @@ func TestSelector_FindMulti(t *testing.T) {
 			assert.Equal(t, tc.wantErr, err)
 			if err == nil {
 				assert.Equal(t, tc.wantRes, res)
+			}
+		})
+	}
+}
+
+type firstModel struct {
+	Id   uint64
+	Name string
+
+	UsingColFirst  int64
+	UsingColSecond string
+}
+
+type secondModel struct {
+	Id      uint64
+	FirstId uint64
+	ThirdId uint64
+
+	UsingColFirst  int64
+	UsingColSecond string
+}
+
+type thirdModel struct {
+	Id uint64
+}
+
+func TestSelector_Join(t *testing.T) {
+	db, err := OpenDB(&sql.DB{}, PostgresDialect)
+	require.NoError(t, err)
+
+	tcs := []struct {
+		name     string
+		selector *Selector[firstModel]
+		wantRes  *Statement
+		wantErr  error
+	}{
+		{
+			name: "inner join with on",
+			selector: func() *Selector[firstModel] {
+				firstTable := TableOf(firstModel{})
+				secondTable := TableOf(secondModel{})
+
+				tableRef := firstTable.InnerJoin(secondTable).On(
+					firstTable.Col("Id").Eq(secondTable.Col("FirstId")),
+				)
+
+				return NewSelector[firstModel](db).From(tableRef).Where(firstTable.Col("Id").Eq(1))
+			}(),
+			wantRes: &Statement{
+				SQL:  `SELECT * FROM "first_model" INNER JOIN "second_model" ON "id" = "first_id" WHERE "id" = $1;`,
+				Args: []any{1},
+			},
+		}, {
+			name: "inner join with tableAlias and on",
+			selector: func() *Selector[firstModel] {
+				firstTable := TableAs(firstModel{}, "f")
+				secondTable := TableAs(secondModel{}, "s")
+
+				tableRef := firstTable.InnerJoin(secondTable).On(
+					firstTable.Col("Id").Eq(secondTable.Col("FirstId")),
+				)
+
+				return NewSelector[firstModel](db).From(tableRef).Where(firstTable.Col("Id").Eq(1))
+			}(),
+			wantRes: &Statement{
+				SQL:  `SELECT * FROM "first_model" AS "f" INNER JOIN "second_model" AS "s" ON "f"."id" = "s"."first_id" WHERE "f"."id" = $1;`,
+				Args: []any{1},
+			},
+		}, {
+			name: "left join with using single column",
+			selector: func() *Selector[firstModel] {
+				firstTable := TableOf(firstModel{})
+				secondTable := TableOf(secondModel{})
+
+				tableRef := firstTable.LeftJoin(secondTable).Using(Col("UsingColFirst"))
+
+				return NewSelector[firstModel](db).From(tableRef).Where(firstTable.Col("Id").Eq(1))
+			}(),
+			wantRes: &Statement{
+				SQL:  `SELECT * FROM "first_model" LEFT JOIN "second_model" USING ("using_col_first") WHERE "id" = $1;`,
+				Args: []any{1},
+			},
+		}, {
+			name: "left join with using multiple columns",
+			selector: func() *Selector[firstModel] {
+				firstTable := TableOf(firstModel{})
+				secondTable := TableOf(secondModel{})
+
+				tableRef := firstTable.LeftJoin(secondTable).Using(
+					Col("UsingColFirst"),
+					Col("UsingColSecond"),
+				)
+
+				return NewSelector[firstModel](db).From(tableRef).Where(firstTable.Col("Id").Eq(1))
+			}(),
+			wantRes: &Statement{
+				SQL:  `SELECT * FROM "first_model" LEFT JOIN "second_model" USING ("using_col_first", "using_col_second") WHERE "id" = $1;`,
+				Args: []any{1},
+			},
+		}, {
+			name: "right join with using invalid column",
+			selector: func() *Selector[firstModel] {
+				firstTable := TableOf(firstModel{})
+				secondTable := TableOf(secondModel{})
+
+				tableRef := firstTable.LeftJoin(secondTable).Using(Col("Invalid"))
+				return NewSelector[firstModel](db).From(tableRef).Where(firstTable.Col("Id").Eq(1))
+			}(),
+			wantErr: errs.ErrInvalidField("Invalid"),
+		}, {
+			name: "right join after inner join",
+			selector: func() *Selector[firstModel] {
+				firstTable := TableOf(firstModel{}).As("f")
+				secondTable := TableOf(secondModel{}).As("s")
+				thirdTable := TableOf(thirdModel{}).As("t")
+
+				innerJoin := firstTable.InnerJoin(secondTable).On(firstTable.Col("Id").Eq(secondTable.Col("FirstId")))
+
+				rightJoin := innerJoin.RightJoin(thirdTable).On(
+					secondTable.Col("ThirdId").Eq(thirdTable.Col("Id")),
+				)
+
+				return NewSelector[firstModel](db).From(rightJoin).Where(firstTable.Col("Id").Gt(100))
+			}(),
+			wantRes: &Statement{
+				SQL:  `SELECT * FROM "first_model" AS "f" INNER JOIN "second_model" AS "s" ON "f"."id" = "s"."first_id" RIGHT JOIN "third_model" AS "t" ON "s"."third_id" = "t"."id" WHERE "f"."id" > $1;`,
+				Args: []any{100},
+			},
+		}, {
+			name: "inner join after left join",
+			selector: func() *Selector[firstModel] {
+				firstTable := TableOf(firstModel{}).As("f")
+				secondTable := TableOf(secondModel{}).As("s")
+				thirdTable := TableOf(thirdModel{}).As("t")
+
+				leftJoin := firstTable.LeftJoin(secondTable).Using(
+					firstTable.Col("UsingColFirst"),
+					firstTable.Col("UsingColSecond"),
+				)
+				innerJoin := leftJoin.InnerJoin(thirdTable).On(
+					secondTable.Col("ThirdId").Eq(thirdTable.Col("Id")),
+				)
+
+				return NewSelector[firstModel](db).From(innerJoin).Where(firstTable.Col("Id").Gt(100))
+			}(),
+			wantRes: &Statement{
+				SQL:  `SELECT * FROM "first_model" AS "f" LEFT JOIN "second_model" AS "s" USING ("using_col_first", "using_col_second") INNER JOIN "third_model" AS "t" ON "s"."third_id" = "t"."id" WHERE "f"."id" > $1;`,
+				Args: []any{100},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			statement, err := tc.selector.Build()
+			assert.Equal(t, tc.wantErr, err)
+
+			if err == nil {
+				assert.Equal(t, tc.wantRes, statement)
 			}
 		})
 	}

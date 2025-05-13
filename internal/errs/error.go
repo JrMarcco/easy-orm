@@ -41,3 +41,7 @@ func ErrRollback(bizErr, rbErr error, bizPanicked bool) error {
 		bizErr, rbErr, bizPanicked,
 	)
 }
+
+func ErrInvalidTbRefTypeRef(tableRef any) error {
+	return fmt.Errorf("[easy-orm] invalid table reference type: %v", tableRef)
+}

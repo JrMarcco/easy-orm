@@ -87,7 +87,7 @@ func (b *builder) buildExpr(expr Expression) error {
 			}
 		}
 	case Column:
-		if err := b.buildColumn(exprTyp); err != nil {
+		if err := b.buildColumn(exprTyp.tableRef, exprTyp.fieldName); err != nil {
 			return err
 		}
 	case columnValue:
@@ -102,27 +102,52 @@ func (b *builder) buildExpr(expr Expression) error {
 	return nil
 }
 
-func (b *builder) buildSelectable(sa selectable) error {
-	switch saTyp := sa.(type) {
-	case Column:
-		return b.buildColumn(saTyp)
-	case Aggregate:
-		return b.buildAggregate(saTyp)
+func (b *builder) buildColumn(tableRef TableRef, fieldName string) error {
+	var tableAlias string
+	if tableRef != nil {
+		tableAlias = tableRef.tableAlias()
 	}
+
+	if tableAlias != "" {
+		b.writeWithQuote(tableAlias)
+		b.sqlBuffer.WriteByte('.')
+	}
+
+	columnName, err := b.columnName(tableRef, fieldName)
+	if err != nil {
+		return err
+	}
+	b.writeWithQuote(columnName)
 	return nil
 }
 
-func (b *builder) buildColumn(column Column) error {
-	if err := b.writeField(column.fieldName); err != nil {
-		return err
-	}
+func (b *builder) columnName(tableRef TableRef, fieldName string) (string, error) {
+	switch refTyp := tableRef.(type) {
+	case nil:
+		field, ok := b.model.Fields[fieldName]
+		if !ok {
+			return "", errs.ErrInvalidField(fieldName)
+		}
+		return field.ColumnName, nil
+	case Table:
+		m, err := b.registry.GetModel(refTyp.entity)
+		if err != nil {
 
-	if column.alias != "" {
-		b.sqlBuffer.WriteString(" AS ")
-		b.writeWithQuote(column.alias)
-	}
+		}
 
-	return nil
+		field, ok := m.Fields[fieldName]
+		if !ok {
+			return "", errs.ErrInvalidField(fieldName)
+		}
+		return field.ColumnName, nil
+	case Join:
+		columnName, err := b.columnName(refTyp.left, fieldName)
+		if err != nil {
+			return b.columnName(refTyp.right, fieldName)
+		}
+		return columnName, nil
+	}
+	return "", errs.ErrUnsupportedExpr(tableRef)
 }
 
 func (b *builder) buildAggregate(aggregate Aggregate) error {

@@ -86,7 +86,7 @@ func (p postgres) onConflict(b *builder, conflict *Conflict) error {
 			b.dialect.bindArg(b)
 		case Column:
 			assignTyp.alias = ""
-			if err := b.buildColumn(assignTyp); err != nil {
+			if err := b.buildColumn(assignTyp.tableRef, assignTyp.fieldName); err != nil {
 				return err
 			}
 
@@ -130,7 +130,7 @@ func (m mysql) onConflict(b *builder, conflict *Conflict) error {
 			b.dialect.bindArg(b)
 		case Column:
 			assignTyp.alias = ""
-			if err := b.buildColumn(assignTyp); err != nil {
+			if err := b.buildColumn(assignTyp.tableRef, assignTyp.fieldName); err != nil {
 				return err
 			}
 

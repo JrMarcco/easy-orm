@@ -48,7 +48,7 @@ func (i *Inserter[T]) Fields(fields ...string) *Inserter[T] {
 }
 
 // OnConflict upsert support.
-// conflicts only supported on postgres, conflicts are field in entity, not columns in db table.
+// conflicts only supported on postgres, conflicts are field in entity, not columns in db tableAlias.
 func (i *Inserter[T]) OnConflict(conflicts ...string) *OnConflictBuilder[T] {
 	ocb := &OnConflictBuilder[T]{
 		inserter: i,

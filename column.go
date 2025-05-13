@@ -5,6 +5,7 @@ var _ Expression = (*Column)(nil)
 var _ Assignable = (*Column)(nil)
 
 type Column struct {
+	tableRef  TableRef
 	fieldName string
 	alias     string
 }
