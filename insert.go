@@ -20,10 +20,21 @@ type Inserter[T any] struct {
 }
 
 func (i *Inserter[T]) Exec(ctx context.Context) Result {
+	if err := i.initModel(); err != nil {
+		return Result{err: err}
+	}
+
 	return exec(ctx, &OrmContext{
 		Typ:     ScTypINSERT,
+		Model:   i.model,
 		Builder: i,
 	}, i.orm)
+}
+
+func (i *Inserter[T]) initModel() error {
+	var err error
+	i.model, err = i.orm.getCore().registry.GetModel(new(T))
+	return err
 }
 
 func (i *Inserter[T]) Rows(rows ...*T) *Inserter[T] {
@@ -51,8 +62,10 @@ func (i *Inserter[T]) OnConflict(conflicts ...string) *OnConflictBuilder[T] {
 
 func (i *Inserter[T]) Build() (*Statement, error) {
 	var err error
-	if i.model, err = i.orm.getCore().registry.GetModel(new(T)); err != nil {
-		return nil, err
+	if i.model == nil {
+		if err = i.initModel(); err != nil {
+			return nil, err
+		}
 	}
 
 	i.sqlBuffer.WriteString("INSERT INTO ")

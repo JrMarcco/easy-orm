@@ -146,6 +146,7 @@ func exec(ctx context.Context, ormCtx *OrmContext, orm orm) Result {
 
 type OrmContext struct {
 	Typ     string
+	Model   *model.Model
 	Builder StatementBuilder
 }
 

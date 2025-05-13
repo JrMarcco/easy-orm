@@ -7,7 +7,7 @@ import (
 	"github.com/JrMarcco/easy-orm/internal/errs"
 )
 
-// selectable marker interface, used to identify optional query columns( e.g., columns, aggregate functions ).
+// selectable marker interface, used to identify optional query columns (e.g., columns, aggregate functions).
 type selectable interface {
 	selectable()
 }
@@ -34,17 +34,33 @@ func (s *Selector[T]) FindOne(ctx context.Context) (*T, error) {
 		s.limit = 1
 	}
 
+	if err := s.initModel(); err != nil {
+		return nil, err
+	}
+
 	return findOne[T](ctx, &OrmContext{
 		Typ:     ScTypSELECT,
+		Model:   s.model,
 		Builder: s,
 	}, s.orm)
 }
 
 func (s *Selector[T]) FindMulti(ctx context.Context) ([]*T, error) {
+	if err := s.initModel(); err != nil {
+		return nil, err
+	}
+
 	return findMulti[T](ctx, &OrmContext{
 		Typ:     ScTypSELECT,
+		Model:   s.model,
 		Builder: s,
 	}, s.orm)
+}
+
+func (s *Selector[T]) initModel() error {
+	var err error
+	s.model, err = s.orm.getCore().registry.GetModel(new(T))
+	return err
 }
 
 func (s *Selector[T]) Select(selectables ...selectable) *Selector[T] {
@@ -99,8 +115,10 @@ func (s *Selector[T]) Offset(offset int64) *Selector[T] {
 
 func (s *Selector[T]) Build() (*Statement, error) {
 	var err error
-	if s.model, err = s.orm.getCore().registry.GetModel(new(T)); err != nil {
-		return nil, err
+	if s.model == nil {
+		if err = s.initModel(); err != nil {
+			return nil, err
+		}
 	}
 
 	s.sqlBuffer.WriteString("SELECT ")

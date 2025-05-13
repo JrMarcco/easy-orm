@@ -14,10 +14,21 @@ type Deleter[T any] struct {
 }
 
 func (d *Deleter[T]) Exec(ctx context.Context) Result {
+	if err := d.initModel(); err != nil {
+		return Result{err: err}
+	}
+
 	return exec(ctx, &OrmContext{
 		Typ:     ScTypDELETE,
+		Model:   d.model,
 		Builder: d,
 	}, d.orm)
+}
+
+func (d *Deleter[T]) initModel() error {
+	var err error
+	d.model, err = d.orm.getCore().registry.GetModel(new(T))
+	return err
 }
 
 func (d *Deleter[T]) Where(pds ...Predicate) *Deleter[T] {
@@ -35,9 +46,10 @@ func (d *Deleter[T]) Where(pds ...Predicate) *Deleter[T] {
 
 func (d *Deleter[T]) Build() (*Statement, error) {
 	var err error
-
-	if d.model, err = d.orm.getCore().registry.GetModel(new(T)); err != nil {
-		return nil, err
+	if d.model == nil {
+		if err = d.initModel(); err != nil {
+			return nil, err
+		}
 	}
 
 	d.sqlBuffer.WriteString("DELETE FROM ")

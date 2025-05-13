@@ -3,6 +3,10 @@ package easyorm
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
+	"errors"
+	"log"
+	"time"
 
 	"github.com/JrMarcco/easy-orm/internal/errs"
 	"github.com/JrMarcco/easy-orm/internal/value"
@@ -59,6 +63,16 @@ func (db *DB) DoTx(ctx context.Context, bizFunc func(ctx context.Context, tx *Tx
 	err = bizFunc(ctx, tx)
 	panicked = false
 
+	return err
+}
+
+func (db *DB) Wait() error {
+	err := db.sqlDB.Ping()
+	for errors.Is(err, driver.ErrBadConn) {
+		log.Println("waiting for db connection...")
+		err = db.sqlDB.Ping()
+		time.Sleep(time.Second)
+	}
 	return err
 }
 

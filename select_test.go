@@ -20,7 +20,7 @@ type selectTestModel struct {
 }
 
 func TestSelector_Build(t *testing.T) {
-	db, err := OpenDB(&sql.DB{}, DBWithDialect(MySQLDialect))
+	db, err := OpenDB(&sql.DB{}, MySQLDialect)
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -308,7 +308,7 @@ func TestSelector_FindOne(t *testing.T) {
 		_ = mockDB.Close()
 	}()
 
-	db, err := OpenDB(mockDB, DBWithDialect(MySQLDialect))
+	db, err := OpenDB(mockDB, MySQLDialect)
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -383,7 +383,7 @@ func TestSelector_FindMulti(t *testing.T) {
 		_ = mockDB.Close()
 	}()
 
-	db, err := OpenDB(mockDB, DBWithDialect(MySQLDialect))
+	db, err := OpenDB(mockDB, MySQLDialect)
 	require.NoError(t, err)
 
 	tcs := []struct {
