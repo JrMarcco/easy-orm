@@ -512,10 +512,55 @@ func TestSelector_SubQuery(t *testing.T) {
 			selector: func() *Selector[selectTestModel] {
 				subQuery := NewSelector[selectTestModel](db).Select(Col("Id")).ToSubQuery()
 
-				return NewSelector[selectTestModel](db).Where(Col("Id").InQuery(subQuery))
+				return NewSelector[selectTestModel](db).Where(Col("Id").InSubQuery(subQuery))
 			}(),
 			wantRes: &Statement{
 				SQL: "SELECT * FROM `select_test_model` WHERE `id` IN (SELECT `id` FROM `select_test_model`);",
+			},
+		}, {
+			name: "where exists",
+			selector: func() *Selector[selectTestModel] {
+				subQuery := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				return NewSelector[selectTestModel](db).Where(subQuery.Exists())
+			}(),
+			wantRes: &Statement{
+				SQL: "SELECT * FROM `select_test_model` WHERE EXISTS (SELECT `first_id` FROM `second_model`);",
+			},
+		}, {
+			name: "where not exists",
+			selector: func() *Selector[selectTestModel] {
+				subQuery := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				return NewSelector[selectTestModel](db).Where(subQuery.NotExists())
+			}(),
+			wantRes: &Statement{
+				SQL: "SELECT * FROM `select_test_model` WHERE NOT EXISTS (SELECT `first_id` FROM `second_model`);",
+			},
+		}, {
+			name: "where all",
+			selector: func() *Selector[selectTestModel] {
+				subQuery := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				return NewSelector[selectTestModel](db).Where(Col("Id").Gt(subQuery.All()))
+			}(),
+			wantRes: &Statement{
+				SQL: "SELECT * FROM `select_test_model` WHERE `id` > (ALL (SELECT `first_id` FROM `second_model`));",
+			},
+		}, {
+			name: "where any",
+			selector: func() *Selector[selectTestModel] {
+				subQuery := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				return NewSelector[selectTestModel](db).Where(Col("Id").Gt(subQuery.Any()))
+			}(),
+			wantRes: &Statement{
+				SQL: "SELECT * FROM `select_test_model` WHERE `id` > (ANY (SELECT `first_id` FROM `second_model`));",
+			},
+		}, {
+			name: "where some",
+			selector: func() *Selector[selectTestModel] {
+				subQuery := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				return NewSelector[selectTestModel](db).Where(Col("Id").Gt(subQuery.Some()))
+			}(),
+			wantRes: &Statement{
+				SQL: "SELECT * FROM `select_test_model` WHERE `id` > (SOME (SELECT `first_id` FROM `second_model`));",
 			},
 		},
 	}

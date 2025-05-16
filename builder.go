@@ -41,7 +41,7 @@ func (b *builder) writeField(name string) error {
 	return errs.ErrInvalidField(name)
 }
 
-func (b *builder) buildExpr(expr Expression) error {
+func (b *builder) buildExpr(expr Expr) error {
 	if expr == nil {
 		return nil
 	}

@@ -141,7 +141,7 @@ func (b *JoinBuilder) Using(cols ...Column) Join {
 }
 
 var _ selectable = (*SubQuery)(nil)
-var _ Expression = (*SubQuery)(nil)
+var _ Expr = (*SubQuery)(nil)
 var _ TableRef = (*SubQuery)(nil)
 
 type SubQuery struct {
@@ -197,5 +197,40 @@ func (s SubQuery) RightJoin(right TableRef) *JoinBuilder {
 		typ:   JoinTypeRight,
 		left:  s,
 		right: right,
+	}
+}
+
+func (s SubQuery) Exists() Predicate {
+	return Predicate{
+		op:    opExists,
+		right: s,
+	}
+}
+
+func (s SubQuery) NotExists() Predicate {
+	return Predicate{
+		op:    opNotExists,
+		right: s,
+	}
+}
+
+func (s SubQuery) All() Predicate {
+	return Predicate{
+		op:    opAll,
+		right: s,
+	}
+}
+
+func (s SubQuery) Any() Predicate {
+	return Predicate{
+		op:    opAny,
+		right: s,
+	}
+}
+
+func (s SubQuery) Some() Predicate {
+	return Predicate{
+		op:    opSome,
+		right: s,
 	}
 }

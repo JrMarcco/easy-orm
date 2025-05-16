@@ -51,7 +51,7 @@ func NewRaw[T any](session orm, sql string, args ...any) *Raw[T] {
 }
 
 var _ selectable = (*RawExpression)(nil)
-var _ Expression = (*RawExpression)(nil)
+var _ Expr = (*RawExpression)(nil)
 
 type RawExpression struct {
 	raw  string

@@ -15,7 +15,7 @@ const (
 
 type Condition struct {
 	typ  condTyp
-	expr Expression
+	expr Expr
 }
 
 func NewCondition(typ condTyp, pds []Predicate) Condition {
@@ -37,24 +37,29 @@ func (o op) String() string {
 }
 
 const (
-	opEq  op = "="
-	opGt  op = ">"
-	opLt  op = "<"
-	opGe  op = ">="
-	opLe  op = "<="
-	opNe  op = "!="
-	opAnd op = "AND"
-	opOr  op = "OR"
-	opNot op = "NOT"
-	opIn  op = "IN"
+	opEq        op = "="
+	opGt        op = ">"
+	opLt        op = "<"
+	opGe        op = ">="
+	opLe        op = "<="
+	opNe        op = "!="
+	opAnd       op = "AND"
+	opOr        op = "OR"
+	opNot       op = "NOT"
+	opIn        op = "IN"
+	opExists    op = "EXISTS"
+	opNotExists op = "NOT EXISTS"
+	opAll       op = "ALL"
+	opAny       op = "ANY"
+	opSome      op = "SOME"
 )
 
-var _ Expression = (*Predicate)(nil)
+var _ Expr = (*Predicate)(nil)
 
 type Predicate struct {
-	left  Expression
+	left  Expr
 	op    op
-	right Expression
+	right Expr
 }
 
 func (p Predicate) expr() {}

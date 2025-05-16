@@ -1,7 +1,7 @@
 package easyorm
 
 var _ selectable = (*Column)(nil)
-var _ Expression = (*Column)(nil)
+var _ Expr = (*Column)(nil)
 var _ Assignable = (*Column)(nil)
 
 type Column struct {
@@ -76,7 +76,7 @@ func (c Column) In(vals ...any) Predicate {
 	}
 }
 
-func (c Column) InQuery(subQuery SubQuery) Predicate {
+func (c Column) InSubQuery(subQuery SubQuery) Predicate {
 	return Predicate{
 		left:  c,
 		op:    opIn,
@@ -93,7 +93,7 @@ func Col(fieldName string) Column {
 	}
 }
 
-var _ Expression = (*columnValue)(nil)
+var _ Expr = (*columnValue)(nil)
 
 type columnValue struct {
 	value any
@@ -101,9 +101,9 @@ type columnValue struct {
 
 func (c columnValue) expr() {}
 
-func valueOf(v any) Expression {
+func valueOf(v any) Expr {
 	switch typ := v.(type) {
-	case Expression:
+	case Expr:
 		return typ
 	default:
 		return columnValue{value: v}
