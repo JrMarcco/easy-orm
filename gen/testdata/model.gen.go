@@ -1,7 +1,7 @@
 package testdata
 
 import (
-	"database/sql"
+	sqlx "database/sql"
 
 	easyorm "github.com/JrMarcco/easy-orm"
 )
@@ -85,27 +85,27 @@ func ModelUsernameLe(val string) easyorm.Predicate {
 	return easyorm.Col("Username").Le(val)
 }
 
-func ModelAddressEq(val *sql.NullString) easyorm.Predicate {
+func ModelAddressEq(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Address").Eq(val)
 }
 
-func ModelAddressNe(val *sql.NullString) easyorm.Predicate {
+func ModelAddressNe(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Address").Ne(val)
 }
 
-func ModelAddressGt(val *sql.NullString) easyorm.Predicate {
+func ModelAddressGt(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Address").Gt(val)
 }
 
-func ModelAddressGe(val *sql.NullString) easyorm.Predicate {
+func ModelAddressGe(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Address").Ge(val)
 }
 
-func ModelAddressLt(val *sql.NullString) easyorm.Predicate {
+func ModelAddressLt(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Address").Lt(val)
 }
 
-func ModelAddressLe(val *sql.NullString) easyorm.Predicate {
+func ModelAddressLe(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Address").Le(val)
 }
 
@@ -164,27 +164,27 @@ func SubModelNameLe(val string) easyorm.Predicate {
 	return easyorm.Col("Name").Le(val)
 }
 
-func SubModelEmailEq(val *sql.NullString) easyorm.Predicate {
+func SubModelEmailEq(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Email").Eq(val)
 }
 
-func SubModelEmailNe(val *sql.NullString) easyorm.Predicate {
+func SubModelEmailNe(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Email").Ne(val)
 }
 
-func SubModelEmailGt(val *sql.NullString) easyorm.Predicate {
+func SubModelEmailGt(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Email").Gt(val)
 }
 
-func SubModelEmailGe(val *sql.NullString) easyorm.Predicate {
+func SubModelEmailGe(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Email").Ge(val)
 }
 
-func SubModelEmailLt(val *sql.NullString) easyorm.Predicate {
+func SubModelEmailLt(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Email").Lt(val)
 }
 
-func SubModelEmailLe(val *sql.NullString) easyorm.Predicate {
+func SubModelEmailLe(val *sqlx.NullString) easyorm.Predicate {
 	return easyorm.Col("Email").Le(val)
 }
 

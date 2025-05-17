@@ -1,17 +1,17 @@
 package testdata
 
-import "database/sql"
+import sqlx "database/sql"
 
 type Model struct {
 	Id       uint64
 	Age      *int32
 	Username string
-	Address  *sql.NullString
+	Address  *sqlx.NullString
 }
 
 type SubModel struct {
 	Id      uint64
 	Name    string
-	Email   *sql.NullString
+	Email   *sqlx.NullString
 	Balance float64
 }

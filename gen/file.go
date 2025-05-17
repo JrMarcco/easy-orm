@@ -60,7 +60,7 @@ func (fv *fileVisitor) Visit(node ast.Node) ast.Visitor {
 		fv.types = append(fv.types, tv)
 		return tv
 	case *ast.ImportSpec:
-		fv.imports = append(fv.imports, n.Path.Value)
+		fv.imports = append(fv.imports, fmt.Sprintf("%s %s", n.Name.String(), n.Path.Value))
 	}
 
 	return fv
