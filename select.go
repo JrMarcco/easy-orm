@@ -120,17 +120,37 @@ func (s *Selector[T]) Offset(offset int64) *Selector[T] {
 	return s
 }
 
-func (s *Selector[T]) ToSubQuery() SubQuery {
+func (s *Selector[T]) ToSubQuery() (SubQuery, error) {
 	tableRef := s.tableRef
 	if tableRef == nil {
 		tableRef = TableOf(new(T))
 	}
 
-	return SubQuery{
-		builder:     s,
-		tableRef:    tableRef,
-		selectables: s.selectables,
+	statement, err := s.Build()
+	if err != nil {
+		return SubQuery{}, err
 	}
+
+	return SubQuery{
+		statement: statement,
+	}, nil
+}
+
+func (s *Selector[T]) AsSubQuery(alias string) (SubQuery, error) {
+	tableRef := s.tableRef
+	if tableRef == nil {
+		tableRef = TableOf(new(T))
+	}
+	
+	statement, err := s.Build()
+	if err != nil {
+		return SubQuery{}, err
+	}
+
+	return SubQuery{
+		statement: statement,
+		alias:     alias,
+	}, nil
 }
 
 func (s *Selector[T]) Build() (*Statement, error) {

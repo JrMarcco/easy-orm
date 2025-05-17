@@ -490,7 +490,8 @@ func TestSelector_SubQuery(t *testing.T) {
 		{
 			name: "select from sub query",
 			selector: func() *Selector[selectTestModel] {
-				subQuery := NewSelector[selectTestModel](db).ToSubQuery().As("s")
+				subQuery, err := NewSelector[selectTestModel](db).AsSubQuery("s")
+				require.NoError(t, err)
 				return NewSelector[selectTestModel](db).From(subQuery)
 			}(),
 			wantRes: &Statement{
@@ -499,8 +500,8 @@ func TestSelector_SubQuery(t *testing.T) {
 		}, {
 			name: "select from sub query with where",
 			selector: func() *Selector[selectTestModel] {
-				subQuery := NewSelector[selectTestModel](db).ToSubQuery().As("s")
-
+				subQuery, err := NewSelector[selectTestModel](db).AsSubQuery("s")
+				require.NoError(t, err)
 				return NewSelector[selectTestModel](db).From(subQuery).Where(subQuery.Col("Id").Eq(1))
 			}(),
 			wantRes: &Statement{
@@ -510,8 +511,8 @@ func TestSelector_SubQuery(t *testing.T) {
 		}, {
 			name: "select from sub query with in",
 			selector: func() *Selector[selectTestModel] {
-				subQuery := NewSelector[selectTestModel](db).Select(Col("Id")).ToSubQuery()
-
+				subQuery, err := NewSelector[selectTestModel](db).Select(Col("Id")).ToSubQuery()
+				require.NoError(t, err)
 				return NewSelector[selectTestModel](db).Where(Col("Id").InSubQuery(subQuery))
 			}(),
 			wantRes: &Statement{
@@ -520,7 +521,8 @@ func TestSelector_SubQuery(t *testing.T) {
 		}, {
 			name: "where exists",
 			selector: func() *Selector[selectTestModel] {
-				subQuery := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				subQuery, err := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				require.NoError(t, err)
 				return NewSelector[selectTestModel](db).Where(subQuery.Exists())
 			}(),
 			wantRes: &Statement{
@@ -529,7 +531,8 @@ func TestSelector_SubQuery(t *testing.T) {
 		}, {
 			name: "where not exists",
 			selector: func() *Selector[selectTestModel] {
-				subQuery := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				subQuery, err := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				require.NoError(t, err)
 				return NewSelector[selectTestModel](db).Where(subQuery.NotExists())
 			}(),
 			wantRes: &Statement{
@@ -538,7 +541,8 @@ func TestSelector_SubQuery(t *testing.T) {
 		}, {
 			name: "where all",
 			selector: func() *Selector[selectTestModel] {
-				subQuery := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				subQuery, err := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				require.NoError(t, err)
 				return NewSelector[selectTestModel](db).Where(Col("Id").Gt(subQuery.All()))
 			}(),
 			wantRes: &Statement{
@@ -547,7 +551,8 @@ func TestSelector_SubQuery(t *testing.T) {
 		}, {
 			name: "where any",
 			selector: func() *Selector[selectTestModel] {
-				subQuery := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				subQuery, err := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				require.NoError(t, err)
 				return NewSelector[selectTestModel](db).Where(Col("Id").Gt(subQuery.Any()))
 			}(),
 			wantRes: &Statement{
@@ -556,11 +561,22 @@ func TestSelector_SubQuery(t *testing.T) {
 		}, {
 			name: "where some",
 			selector: func() *Selector[selectTestModel] {
-				subQuery := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				subQuery, err := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				require.NoError(t, err)
 				return NewSelector[selectTestModel](db).Where(Col("Id").Gt(subQuery.Some()))
 			}(),
 			wantRes: &Statement{
 				SQL: "SELECT * FROM `select_test_model` WHERE `id` > (SOME (SELECT `first_id` FROM `second_model`));",
+			},
+		}, {
+			name: "where some and any",
+			selector: func() *Selector[selectTestModel] {
+				subQuery, err := NewSelector[secondModel](db).Select(Col("FirstId")).ToSubQuery()
+				require.NoError(t, err)
+				return NewSelector[selectTestModel](db).Where(Col("Id").Gt(subQuery.Some().And(subQuery.Any())))
+			}(),
+			wantRes: &Statement{
+				SQL: "SELECT * FROM `select_test_model` WHERE `id` > ((SOME (SELECT `first_id` FROM `second_model`)) AND (ANY (SELECT `first_id` FROM `second_model`)));",
 			},
 		},
 	}

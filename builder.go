@@ -164,19 +164,14 @@ func (b *builder) buildAggregate(aggregate Aggregate) error {
 }
 
 func (b *builder) buildSubQuery(subQ SubQuery) error {
-	statement, err := subQ.builder.Build()
-	if err != nil {
-		return err
-	}
-
 	b.sqlBuffer.WriteByte('(')
-	sql := statement.SQL
+	sql := subQ.statement.SQL
 	// remove ';' at the end of SQL
 	b.sqlBuffer.WriteString(sql[:len(sql)-1])
 	b.sqlBuffer.WriteByte(')')
 
-	if len(statement.Args) > 0 {
-		b.addArgs(statement.Args...)
+	if len(subQ.statement.Args) > 0 {
+		b.addArgs(subQ.statement.Args...)
 	}
 
 	if alias := subQ.tableAlias(); alias != "" {
@@ -197,7 +192,7 @@ func (b *builder) columnName(tableRef TableRef, fieldName string) (string, error
 	case Table:
 		m, err := b.registry.GetModel(refTyp.entity)
 		if err != nil {
-
+			return "", err
 		}
 
 		field, ok := m.Fields[fieldName]

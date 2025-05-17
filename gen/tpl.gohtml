@@ -1,0 +1,29 @@
+package {{ .Pkg }}
+
+import (
+{{- range $index, $import := .Imports }}
+    {{ $import }}
+{{ end }}
+    easyorm "github.com/JrMarcco/easy-orm"
+)
+
+{{ $ops := .Ops }}
+
+{{- range $typeIndex, $type := .Types }}
+const (
+{{- range $fieldIndex, $field := .Fields }}
+    {{ $type.Name }}{{ $field.Name }} = "{{ $field.Name }}"
+{{- end }}
+)
+{{ range $fieldIndex, $field := .Fields }}
+
+{{- range $opIndex, $op := $ops }}
+func {{ $type.Name }}{{ $field.Name }}{{ $op }}(val {{ $field.Type }}) easyorm.Predicate {
+    return easyorm.Col("{{ $field.Name }}").{{ $op }}(val)
+}
+{{ end -}}
+
+{{/* end for range fields */}}
+{{- end }}
+{{/* end for range types */}}
+{{- end }}
